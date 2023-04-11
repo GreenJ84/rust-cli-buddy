@@ -1,0 +1,18 @@
+[package]
+name = "cli-buddy"
+version = "0.1.0"
+edition = "2021"
+authors = ["Jesse jesse.greenough84@gmail.com"]
+license = "MIT"
+
+[workspace]
+members = [
+    "buddy-manager",
+    "calculator",
+    "password-manager",
+    "password-generator",
+    "file-organizer",
+    "task-manager",
+    "development-timer",
+    "word-analyzer",
+]
