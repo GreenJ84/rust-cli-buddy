@@ -68,6 +68,9 @@ dependencies = [
 [[package]]
 name = "rust-cli-buddy"
 version = "0.1.0"
+dependencies = [
+ "termion",
+]
 
 [[package]]
 name = "task-manager"
