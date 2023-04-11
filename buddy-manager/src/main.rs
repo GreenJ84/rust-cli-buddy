@@ -11,11 +11,11 @@ use std::thread::sleep;
 
 const BUDDY_PROGRAMS: [&str; 7] = [
     "calculator",
+    "development-timer",
+    "file-organizer",
     "password-manager",
     "password-generator",
-    "file-organizer",
     "task-manager",
-    "development-timer",
     "word analyzer",
 ];
 
