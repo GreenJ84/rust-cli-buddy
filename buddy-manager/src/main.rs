@@ -1,5 +1,5 @@
 use std::io::{stdout, stdin, Write};
-// use std::process::Command;
+use std::process::{Command, Stdio};
 use termion::clear;
 use termion::color;
 use termion::cursor::{Goto, Hide, Show};
@@ -170,16 +170,19 @@ fn main() {
         } else{
 
         println!("Starting {}", &BUDDY_PROGRAMS[selected]);
-        sleep(Duration::from_secs(5));
+        sleep(Duration::from_secs(3));
+        
+        let mut spawn = Command::new("cargo")
+            .arg("run")
+            .arg("--bin")
+            .arg(BUDDY_PROGRAMS[selected])
+            .stdout(Stdio::inherit())
+            .spawn()
+            .expect("Failed to spawn application");
 
-        // let output = Command::new("cargo")
-        //     .arg("run")
-        //     .arg("--bin")
-        //     .arg(BUDDY_PROGRAMS[selected])
-        //     .output()
-        //     .expect("Failed to spawn application")
-
-        // println!("{}", String::from_utf8_lossy(&output.stdout))
+        let exit_status = spawn.wait().expect(&format!("Failed to wait for {} program.", BUDDY_PROGRAMS[selected]));
+        println!("Exiting {}. Status: {}", BUDDY_PROGRAMS[selected], exit_status);
+        sleep(Duration::from_secs(10));
         }
     }
 
