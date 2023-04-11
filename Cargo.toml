@@ -1,5 +1,5 @@
 [package]
-name = "cli-buddy"
+name = "rust-cli-buddy"
 version = "0.1.0"
 edition = "2021"
 authors = ["Jesse jesse.greenough84@gmail.com"]
@@ -16,3 +16,7 @@ members = [
     "development-timer",
     "word-analyzer",
 ]
+
+[[bin]]
+name = "buddy-manager"
+path = "buddy-manager/src/main.rs"
