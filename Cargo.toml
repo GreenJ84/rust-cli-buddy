@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Jesse jesse.greenough84@gmail.com"]
 license = "MIT"
+default-run = "buddy-manager"
 
 [workspace]
 members = [
@@ -20,6 +21,36 @@ members = [
 [dependencies]
 termion = "1.5.6"
 
+
+
 [[bin]]
 name = "buddy-manager"
 path = "buddy-manager/src/main.rs"
+
+[[bin]]
+name = "calculator"
+path = "calculator/src/main.rs"
+
+[[bin]]
+name = "development-timer"
+path = "development-timer/src/main.rs"
+
+[[bin]]
+name = "file-organizer"
+path = "file-organizer/src/main.rs"
+
+[[bin]]
+name = "password-generator"
+path = "password-generator/src/main.rs"
+
+[[bin]]
+name = "password-manager"
+path = "password-manager/src/main.rs"
+
+[[bin]]
+name = "task-manager"
+path = "task-manager/src/main.rs"
+
+[[bin]]
+name = "word-analyzer"
+path = "word-analyzer/src/main.rs"
