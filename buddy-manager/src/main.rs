@@ -22,6 +22,7 @@ const BUDDY_PROGRAMS: [&str; 7] = [
 fn main() {
     let mut stdout = stdout().into_raw_mode().unwrap();
     let mut running = true;
+    let mut selected = 0;
     
     while running {
         let stdin = stdin();
@@ -40,16 +41,13 @@ fn main() {
             color::Fg(color::Green),
             color::Fg(color::Reset)
         ).unwrap();
-        
         write!(
             stdout, 
-            "{}{} enter / 'q'uit {}\n", 
+            "{}{}enter / 'q'uit {}\n", 
             Goto(4, 2),
             color::Fg(color::Yellow),
             color::Fg(color::Reset)
         ).unwrap();
-
-        let mut selected = 0;
 
         // Print the list
         for (i, program) in BUDDY_PROGRAMS.iter().enumerate(){
@@ -60,16 +58,15 @@ fn main() {
                     Goto(1, (i+4) as u16),
                     color::Fg(color::Red),
                     program,
-                    Goto(1, (BUDDY_PROGRAMS.len() + 4) as u16),
+                    color::Fg(color::Reset),
                 ).unwrap();
             } else {
                 write!(
                     stdout,
-                    "{}{}{}{}",
+                    "{}{}{}",
                     Goto(1, (i+4) as u16),
                     color::Fg(color::Reset),
                     program,
-                    Goto(1, (BUDDY_PROGRAMS.len() + 4) as u16),
                 ).unwrap();
             }
         }
@@ -77,7 +74,6 @@ fn main() {
 
         // Handle User Input
         for c in stdin.keys() {
-            stdout.flush().unwrap();
             match c.unwrap(){
                 Key::Up => {
                     if selected > 0{
@@ -126,32 +122,38 @@ fn main() {
                 Key::Char('\n') => {
                     write!(
                         stdout, 
-                        "{}........Selecting{}",
+                        "{}{}........Selecting{}",
+                        Goto(BUDDY_PROGRAMS[selected].len() as u16 + 3, selected as u16 + 4),
                         color::Fg(color::Red),
                         color::Fg(color::Reset),
                     ).unwrap();
                     stdout.flush().unwrap();
-                    sleep(Duration::from_secs(2));
+                    sleep(Duration::from_secs(1));
 
                     write!(
                         stdout,
                         "{}{}{}You have chosesen: {}{}",
                         clear::All,
-                        Goto(1, 2 as u16),
+                        Goto(1, 1),
                         color::Fg(color::Green),
                         BUDDY_PROGRAMS[selected],
-                        Goto(1, 3 as u16),
+                        Goto(1, 2),
                     ).unwrap();
+                    stdout.flush().unwrap();
+                    sleep(Duration::from_secs(1));
                     break;
                 },
                 Key::Char('q') => {
                     write!(
                         stdout,
-                        "Quitting program....{}{}",
+                        "{}{}{}Quitting program....",
                         clear::All,
-                        Goto(1,1)
+                        Goto(1,1),
+                        color::Fg(color::Reset),
                     ).unwrap();
+                    stdout.flush().unwrap();
                     running = false;
+                    sleep(Duration::from_secs(1));
                     break;
                 },
                 _ => {}
@@ -159,15 +161,7 @@ fn main() {
             stdout.flush().unwrap();
         }
 
-        if !running {
-            write!(
-                stdout,
-                "{}",
-                Show
-            ).unwrap();
-            println!("Goodbye friend.");
-            return;
-        } else{
+        if !running { break; }
 
         println!("Starting {}", &BUDDY_PROGRAMS[selected]);
         sleep(Duration::from_secs(3));
@@ -181,9 +175,13 @@ fn main() {
             .expect("Failed to spawn application");
 
         let exit_status = spawn.wait().expect(&format!("Failed to wait for {} program.", BUDDY_PROGRAMS[selected]));
-        println!("Exiting {}. Status: {}", BUDDY_PROGRAMS[selected], exit_status);
-        sleep(Duration::from_secs(10));
-        }
+        println!(
+            "{}{} Exiting {}. Status: {}",
+            clear::All, 
+            Goto(1,1),
+            BUDDY_PROGRAMS[selected], 
+            exit_status);
+        sleep(Duration::from_secs(1));
     }
 
 }
