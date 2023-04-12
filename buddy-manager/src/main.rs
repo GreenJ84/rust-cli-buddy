@@ -184,4 +184,20 @@ fn main() {
         sleep(Duration::from_secs(1));
     }
 
+    write!(
+        stdout,
+        "...Goodbye {}buddy.{}",
+        color::Fg(color::Green),
+        color::Fg(color::Reset),
+    ).unwrap();
+    stdout.flush().unwrap();
+
+    sleep(Duration::from_secs(3));
+    write!(
+        stdout,
+        "{}{}\r",
+        clear::All,
+        Show
+    ).unwrap();
+    return;
 }
