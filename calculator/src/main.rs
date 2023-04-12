@@ -12,10 +12,10 @@ fn main() {
     let mut stdout = stdout().into_raw_mode().unwrap();
     write!(
         stdout,
-        "{}{}{}",
-        Show,
+        "{}{}Welcome to the calculator!{}",
         clear::All,
         Goto(1,1),
+        Show
     ).unwrap();
 
     let mut running = true;
@@ -23,7 +23,8 @@ fn main() {
         let stdin = stdin();
         write!(
             stdout,
-            "\r{}> {}{}",
+            "{}\r{}> {}{}",
+            clear::CurrentLine,
             color::Fg(color::Red),
             color::Fg(color::Reset),
             BlinkingUnderline
