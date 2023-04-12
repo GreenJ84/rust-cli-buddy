@@ -100,5 +100,67 @@ fn main() {
 }
 
 fn eval(expr: &str) -> Result<f64, ()> {
-    Ok(1)
+    let segments: Vec<&str> = expr.split_ascii_whitespace().collect();
+
+    let mut stack: Vec<f64> = Vec::new();
+    let mut sign: Vec<&str> = Vec::new();
+    for item in segments{
+        match item {
+            "+" => {
+                sign.push(item);
+            },
+            "-" => {
+                sign.push(item);
+            },
+            "*" => {
+                sign.push(item);
+            },
+            "/" => {
+                sign.push(item);
+            },
+            _ => {
+                let num = item.parse::<f64>().map_err(|_| ())?;
+                stack.push(num);
+                if sign.len() > 0{
+                    match sign.last() {
+                        Some(&"*") => {
+                            sign.pop();
+                            let b = stack.pop().ok_or(())?;
+                            let a = stack.pop().ok_or(())?;
+                            stack.push(a * b);
+                        },
+                        Some(&"/") => {
+                            sign.pop();
+                            let b = stack.pop().ok_or(())?;
+                            let a = stack.pop().ok_or(())?;
+                            stack.push(a / b);
+                        },
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+    while sign.len() > 0{
+        let b = stack.pop().ok_or(())?;
+        let a = stack.pop().ok_or(())?;
+        match sign.last() {
+            Some(&"+") => {
+                stack.push(a + b);
+            },
+            Some(&"-") => {
+                stack.push(a - b);
+            },
+            _ => {
+                return Err(());
+            }
+        }
+        sign.pop();
+    }
+
+    if stack.len() == 1{
+        Ok(stack[0])
+    } else{
+        Err(())
+    }
 }
