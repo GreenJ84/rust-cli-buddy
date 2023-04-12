@@ -69,7 +69,7 @@ fn main() {
                     write!(stdout,"{}", c).unwrap();
                     stdout.flush().unwrap();
                 },
-                Key::Backspace => {
+                Key::Backspace | Key::Delete => {
                     input.pop();
                     write!(
                         stdout,
@@ -77,6 +77,7 @@ fn main() {
                         Left(1),
                         clear::AfterCursor
                     ).unwrap();
+                    stdout.flush().unwrap();
                 },
                 _ => {}
             }
@@ -115,6 +116,15 @@ fn eval(expr: &str) -> Result<f64, ()> {
             "*" => {
                 sign.push(item);
             },
+            "**" => {
+                sign.push(item);
+            },
+            "//" => {
+                sign.push(item);
+            },
+            "%" => {
+                sign.push(item);
+            },
             "/" => {
                 sign.push(item);
             },
@@ -128,6 +138,27 @@ fn eval(expr: &str) -> Result<f64, ()> {
                             let b = stack.pop().ok_or(())?;
                             let a = stack.pop().ok_or(())?;
                             stack.push(a * b);
+                        },
+                        Some(&"**") => {
+                            sign.pop();
+                            let b = stack.pop().ok_or(())?;
+                            let mut a = stack.pop().ok_or(())?;
+                            for _ in 1..b as u16 {
+                                a *= a
+                            }
+                            stack.push(a);
+                        },
+                        Some(&"//") => {
+                            sign.pop();
+                            let b = stack.pop().ok_or(())?;
+                            let mut a = stack.pop().ok_or(())?;
+                            stack.push(((a / b) as u16) as f64);
+                        },
+                        Some(&"%") => {
+                            sign.pop();
+                            let b = stack.pop().ok_or(())?;
+                            let mut a = stack.pop().ok_or(())?;
+                            stack.push(a % b);
                         },
                         Some(&"/") => {
                             sign.pop();
