@@ -2,6 +2,7 @@ use std::io::{stdout, stdin, Write};
 use std::process::{Command, Stdio};
 use termion::clear;
 use termion::color;
+use termion::style;
 use termion::cursor::{Goto, Hide, Show};
 use termion::event::Key;
 use termion::input::TermRead;
@@ -36,10 +37,13 @@ fn main() {
 
         write!(
             stdout, 
-            "{}{}Select a program to start: {}", 
+            "{}{}{}{}Select a program to start:{} {}", 
             Goto(1, 1),
+            style::Bold,
+            style::Underline,
             color::Fg(color::Green),
-            color::Fg(color::Reset)
+            style::Reset,
+            color::Fg(color::Reset),
         ).unwrap();
         write!(
             stdout, 
@@ -54,11 +58,13 @@ fn main() {
             if selected == i {
                 write!(
                     stdout,
-                    "{}{}> {}{}",
+                    "{}{}> {}{}{}{}",
                     Goto(1, (i+4) as u16),
                     color::Fg(color::Red),
-                    program,
+                    style::Bold,
+                    program.to_uppercase(),
                     color::Fg(color::Reset),
+                    style::Reset
                 ).unwrap();
             } else {
                 write!(
@@ -88,12 +94,15 @@ fn main() {
                         selected -= 1;
                         write!(
                             stdout,
-                            "{}{}{}> {}{}",
+                            "{}{}{}> {}{}{}{}",
                             Goto(1, selected as u16 + 4),
                             clear::CurrentLine,
                             color::Fg(color::Red),
-                            BUDDY_PROGRAMS[selected],
+                            style::Bold,
+                            BUDDY_PROGRAMS[selected].to_uppercase(),
                             color::Fg(color::Reset),
+
+                            style::Reset
                         ).unwrap();
                     }
                 },
@@ -110,21 +119,36 @@ fn main() {
                         selected += 1;
                         write!(
                             stdout,
-                            "{}{}{}> {}{}",
+                            "{}{}{}> {}{}{}{}",
                             Goto(1, selected as u16 + 4),
                             clear::CurrentLine,
                             color::Fg(color::Red),
-                            BUDDY_PROGRAMS[selected],
+                            style::Bold,
+                            BUDDY_PROGRAMS[selected].to_uppercase(),
                             color::Fg(color::Reset),
+                            style::Reset
                         ).unwrap();
                     }
                 },
                 Key::Char('\n') => {
                     write!(
                         stdout, 
-                        "{}{}........Selecting{}",
+                        "{}{}..",
                         Goto(BUDDY_PROGRAMS[selected].len() as u16 + 3, selected as u16 + 4),
                         color::Fg(color::Red),
+                    ).unwrap();
+                    stdout.flush().unwrap();
+                    for _i in 0..2{
+                        write!(
+                            stdout, 
+                            "..",
+                        ).unwrap();
+                        stdout.flush().unwrap();
+                        sleep(Duration::from_secs(1));
+                    }
+                    write!(
+                        stdout, 
+                        "..Selecting{}",
                         color::Fg(color::Reset),
                     ).unwrap();
                     stdout.flush().unwrap();
@@ -132,28 +156,37 @@ fn main() {
 
                     write!(
                         stdout,
-                        "{}{}{}You have chosesen: {}{}",
+                        "{}{}{}{}You have chosesen: {}{}{}",
                         clear::All,
                         Goto(1, 1),
                         color::Fg(color::Green),
-                        BUDDY_PROGRAMS[selected],
+                        style::Underline,
+                        BUDDY_PROGRAMS[selected].to_uppercase(),
                         Goto(1, 2),
+                        style::NoUnderline,
                     ).unwrap();
                     stdout.flush().unwrap();
                     sleep(Duration::from_secs(1));
                     break;
                 },
-                Key::Char('q') => {
+                Key::Char('q') | Key::Esc => {
                     write!(
                         stdout,
                         "{}{}{}Quitting program....",
                         clear::All,
                         Goto(1,1),
-                        color::Fg(color::Reset),
+                        color::Fg(color::Red),
                     ).unwrap();
                     stdout.flush().unwrap();
+                    for _i in 0..2{
+                        write!(
+                            stdout, 
+                            "...",
+                        ).unwrap();
+                        stdout.flush().unwrap();
+                        sleep(Duration::from_secs(1));
+                    }
                     running = false;
-                    sleep(Duration::from_secs(1));
                     break;
                 },
                 _ => {}
@@ -163,18 +196,27 @@ fn main() {
 
         if !running { break; }
 
-        println!("Starting {}", &BUDDY_PROGRAMS[selected]);
+        write!(
+            stdout,
+            "Starting {}{}", 
+            BUDDY_PROGRAMS[selected].to_uppercase(),
+            style::Reset
+        ).unwrap();
+        stdout.flush().unwrap();
         sleep(Duration::from_secs(3));
         
         let mut spawn = Command::new("cargo")
             .arg("run")
             .arg("--bin")
             .arg(BUDDY_PROGRAMS[selected])
+            .stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
             .spawn()
             .expect("Failed to spawn application");
 
         let exit_status = spawn.wait().expect(&format!("Failed to wait for {} program.", BUDDY_PROGRAMS[selected]));
+        sleep(Duration::from_secs(3));
         println!(
             "{}{} Exiting {}. Status: {}",
             clear::All, 
@@ -186,8 +228,11 @@ fn main() {
 
     write!(
         stdout,
-        "...Goodbye {}buddy.{}",
+        "...Goodbye {}{}{}BUDDY.{}{}",
         color::Fg(color::Green),
+        style::Bold,
+        style::Underline,
+        style::Reset,
         color::Fg(color::Reset),
     ).unwrap();
     stdout.flush().unwrap();
