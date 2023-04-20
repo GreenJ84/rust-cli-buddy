@@ -12,7 +12,7 @@ fn main() {
     let mut stdout = stdout();
     write!(
         stdout,
-        "{}{}{}Welcome to the {}Calculator!{}{}\n\r",
+        "{}{}{}Welcome to the {}Calculator!{}{}\n\n\r",
         clear::All,
         Goto(1,1),
         color::Fg(color::Green),
@@ -170,17 +170,29 @@ fn main() {
 
     write!(
         stdout,
-        "{}{}{}...calculator shutting down.{}",
+        "{}{}{}...",
         clear::All,
         Goto(1,1),
-        color::Fg(color::Green),
+        color::Fg(color::Green)
+    ).unwrap();
+    for _ in 0..4 {
+        write!(
+            stdout,
+            "...",
+        ).unwrap();
+        stdout.flush().unwrap();
+        sleep(Duration::from_millis(200));
+    }
+    write!(
+        stdout,
+        "...calculate ya later.{}",
         color::Fg(color::Reset)
     ).unwrap();
     stdout.flush().unwrap();
-
-    sleep(Duration::from_secs(2));
+    sleep(Duration::from_secs(1));
     return;
 }
+
 
 fn eval(expr: &str) -> Result<f64, ()> {
     let segments: Vec<&str> = expr.split_ascii_whitespace().collect();
