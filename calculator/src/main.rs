@@ -1,23 +1,30 @@
 use std::io::{stdout, stdin, Write};
 use std::thread::sleep;
 use std::time::Duration;
-use termion::raw::IntoRawMode;
 use termion::input::TermRead;
 use termion::clear;
 use termion::color;
-use termion::cursor::{Goto, Show, Left, BlinkingUnderline};
+use termion::style;
+use termion::cursor::{Goto, Show, Left, BlinkingUnderline, DetectCursorPos};
 use termion::event::Key;
 
 fn main() {
-    let mut stdout = stdout().into_raw_mode().unwrap();
+    let mut stdout = stdout();
     write!(
         stdout,
-        "{}{}Welcome to the calculator!{}",
+        "{}{}{}Welcome to the {}Calculator!{}{}\n\r",
         clear::All,
         Goto(1,1),
-        Show
+        color::Fg(color::Green),
+        style::Bold,
+        Show,
+        style::Reset
     ).unwrap();
+    stdout.flush().unwrap();
 
+    let mut recents_stack: Vec<String> = Vec::new();
+    let mut offset: u32 = 0;
+    let mut input = String::new();
     let mut running = true;
     while running {
         let stdin = stdin();
@@ -31,22 +38,17 @@ fn main() {
         ).unwrap();
         stdout.flush().unwrap();
 
-        let mut input = String::new();
         for key in stdin.keys() {
-            match key.unwrap() {
-                Key::Char('q') | Key::Esc => {
-                    stdout.flush().unwrap();
-                    running = false;
-                    break;
-                },
+            stdout.flush().unwrap();
+            match key.unwrap(){
                 Key::Char('\n') => {
-                    input.push(' ');
-                    print!("\n\r");
                     if let Ok(result) = eval(&input){
-                        stdout.flush().unwrap();
+                        recents_stack.push(input.to_owned());
+                        input = String::new();
+                        offset = 0;
                         write!(
                             stdout,
-                            "{}{}{}\n\n\r",
+                            "\n\r{}{}{}\n\n\r",
                             color::Fg(color::Green),
                             result,
                             color::Fg(color::Reset),
@@ -65,20 +67,81 @@ fn main() {
                     }
                     break;
                 },
+                Key::Up => {
+                    let x = recents_stack.len();
+                    let curr_line = stdout.cursor_pos().unwrap().1;
+                    if (offset as usize) < recents_stack.len(){
+                        offset += 1;
+                        if let Some(item) = recents_stack.get(x.checked_sub((offset).try_into().unwrap()).unwrap_or_default()){
+                            input = item.to_owned();
+                        } else {
+                            input = String::new();
+                        }
+                        write!(
+                            stdout,
+                            "{}{}{}{:?}{}",
+                            Goto(3, curr_line),
+                            clear::AfterCursor,
+                            color::Fg(color::Yellow),
+                            input,
+                            color::Fg(color::Reset)
+                        ).unwrap();
+                        stdout.flush().unwrap();
+                    }
+                },
+                Key::Down => {
+                    let curr_line = stdout.cursor_pos().unwrap().1;
+                    let x = recents_stack.len();
+
+                    if offset > 1{
+                        offset -= 1;
+                        if let Some(item) = recents_stack.get(x.checked_sub((offset).try_into().unwrap()).unwrap_or_default()){
+                            input = item.to_owned();
+                        } else {
+                            input = String::new();
+                        }
+                        write!(
+                            stdout,
+                            "{}{}{}{:?}{}",
+                            Goto(3, curr_line),
+                            clear::AfterCursor,
+                            color::Fg(color::Yellow),
+                            input,
+                            color::Fg(color::Reset)
+                        ).unwrap();
+                        stdout.flush().unwrap();
+                    } else if offset == 1{
+                        offset -= 1;
+                        write!(
+                            stdout,
+                            "{}{}{}",
+                            Goto(3, curr_line),
+                            clear::AfterCursor,
+                            color::Fg(color::Reset)
+                        ).unwrap();
+                        stdout.flush().unwrap();
+                    }
+                },
+                Key::Esc | Key::Char('q') => {
+                    running = false;
+                    break;
+                },
                 Key::Char(c) => {
                     input.push(c);
                     write!(stdout,"{}", c).unwrap();
                     stdout.flush().unwrap();
                 },
                 Key::Backspace | Key::Delete => {
-                    input.pop();
-                    write!(
-                        stdout,
-                        "{}{}",
-                        Left(1),
-                        clear::AfterCursor
-                    ).unwrap();
-                    stdout.flush().unwrap();
+                    if input.len() > 0 as usize{
+                        input.pop();
+                        write!(
+                            stdout,
+                            "{}{}",
+                            Left(1),
+                            clear::AfterCursor
+                        ).unwrap();
+                        stdout.flush().unwrap();
+                    }
                 },
                 _ => {}
             }
@@ -152,13 +215,13 @@ fn eval(expr: &str) -> Result<f64, ()> {
                         Some(&"//") => {
                             sign.pop();
                             let b = stack.pop().ok_or(())?;
-                            let mut a = stack.pop().ok_or(())?;
+                            let a = stack.pop().ok_or(())?;
                             stack.push(((a / b) as u16) as f64);
                         },
                         Some(&"%") => {
                             sign.pop();
                             let b = stack.pop().ok_or(())?;
-                            let mut a = stack.pop().ok_or(())?;
+                            let a = stack.pop().ok_or(())?;
                             stack.push(a % b);
                         },
                         Some(&"/") => {
