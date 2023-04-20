@@ -1,5 +1,8 @@
+use rusqlite::{Connection};
 use std::io::{stdout, stdin, Write};
 use std::process::{Command, Stdio};
+use std::time::Duration;
+use std::thread::sleep;
 use termion::clear;
 use termion::color;
 use termion::style;
@@ -7,8 +10,6 @@ use termion::cursor::{Goto, Hide, Show};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
-use std::time::Duration;
-use std::thread::sleep;
 
 const BUDDY_PROGRAMS: [&str; 7] = [
     "calculator",
@@ -21,6 +22,31 @@ const BUDDY_PROGRAMS: [&str; 7] = [
 ];
 
 fn main() {
+    if let Ok(conn) = Connection::open("../../passwords_db.db3"){
+        println!("Inside connection");
+        // Check if the table already exists
+        let table_exists: bool = conn
+            .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='passwords'")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(0))
+            .unwrap()
+            .next()
+            .is_some();
+        println!("{}", table_exists);
+        if !table_exists {
+            // Create the table if it doesn't exist
+            conn.execute(
+                "CREATE TABLE passwords (
+                    id INTEGER PRIMARY KEY,
+                    username TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    password TEXT NOT NULL
+                )",
+                [],
+            ).unwrap();
+        }
+        conn.close().unwrap();
+    }
     let mut stdout = stdout().into_raw_mode().unwrap();
     let mut running = true;
     let mut selected = 0;
