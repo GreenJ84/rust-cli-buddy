@@ -1,5 +1,5 @@
 // Development companion, AI assistant
 
 fn main() {
-    println!("Hello, world!");
+    println!("Hello, AI Co-Pilot!");
 }

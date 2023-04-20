@@ -1,3 +1,4 @@
+// Add, manage, delete tasks. task timelines, deadlines, and updates
 fn main() {
-    println!("Hello, world!");
+    println!("Hello, Task Manager!");
 }

@@ -1,3 +1,5 @@
+// stopwatch, timer, time tracker, recent timed events, usage log
+
 fn main() {
-    println!("Hello, world!");
+    println!("Hello, Development Timer!");
 }

@@ -1,3 +1,6 @@
+
+
+// Register cli user, add, manage, delete passwords
 fn main() {
-    println!("Hello, world!");
+    println!("Hello, Password Manager!");
 }

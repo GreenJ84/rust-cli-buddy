@@ -1,3 +1,5 @@
+// Move, Copy, Rename, Create, Delete, Sort, search, filter
+
 fn main() {
-    println!("Hello, world!");
+    println!("Hello, File Organizer!");
 }

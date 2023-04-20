@@ -1,3 +1,5 @@
+// letter, word frequencies, morphologies, and syllabel counts
+
 fn main() {
-    println!("Hello, world!");
+    println!("Hello, Word Analyzer!");
 }
