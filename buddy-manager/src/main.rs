@@ -30,28 +30,23 @@ fn main() {
 
         write!(
             stdout, 
-            "{}{}",
+            "{}{}{}{}{}{}Select a program to start: {}", 
             clear::All,
             Hide,
-        ).unwrap();
-
-        write!(
-            stdout, 
-            "{}{}{}{}Select a program to start:{} {}", 
             Goto(1, 1),
             style::Bold,
             style::Underline,
             color::Fg(color::Green),
             style::Reset,
-            color::Fg(color::Reset),
         ).unwrap();
         write!(
             stdout, 
-            "{}{}enter / 'q'uit {}\n", 
+            "{}{} enter / 'q'uit {}\n", 
             Goto(4, 2),
             color::Fg(color::Yellow),
             color::Fg(color::Reset)
         ).unwrap();
+        stdout.flush().unwrap();
 
         // Print the list
         for (i, program) in BUDDY_PROGRAMS.iter().enumerate(){
@@ -138,17 +133,17 @@ fn main() {
                         color::Fg(color::Red),
                     ).unwrap();
                     stdout.flush().unwrap();
-                    for _i in 0..2{
+                    for _i in 0..5{
                         write!(
                             stdout, 
                             "..",
                         ).unwrap();
                         stdout.flush().unwrap();
-                        sleep(Duration::from_secs(1));
+                        sleep(Duration::from_millis(100));
                     }
                     write!(
                         stdout, 
-                        "..Selecting{}",
+                        "..Selected{}",
                         color::Fg(color::Reset),
                     ).unwrap();
                     stdout.flush().unwrap();
@@ -156,7 +151,7 @@ fn main() {
 
                     write!(
                         stdout,
-                        "{}{}{}{}You have chosesen: {}{}{}",
+                        "{}{}{}{}You have chosesen: {}{}{}\n\r",
                         clear::All,
                         Goto(1, 1),
                         color::Fg(color::Green),
@@ -166,25 +161,25 @@ fn main() {
                         style::NoUnderline,
                     ).unwrap();
                     stdout.flush().unwrap();
-                    sleep(Duration::from_secs(1));
+                    sleep(Duration::from_millis(500));
                     break;
                 },
                 Key::Char('q') | Key::Esc => {
                     write!(
                         stdout,
-                        "{}{}{}Quitting program....",
+                        "{}{}{}Leaving your buddy behind....",
                         clear::All,
                         Goto(1,1),
                         color::Fg(color::Red),
                     ).unwrap();
                     stdout.flush().unwrap();
-                    for _i in 0..2{
+                    for _i in 0..5{
                         write!(
                             stdout, 
                             "...",
                         ).unwrap();
                         stdout.flush().unwrap();
-                        sleep(Duration::from_secs(1));
+                        sleep(Duration::from_millis(200));
                     }
                     running = false;
                     break;
@@ -203,7 +198,7 @@ fn main() {
             style::Reset
         ).unwrap();
         stdout.flush().unwrap();
-        sleep(Duration::from_secs(3));
+        sleep(Duration::from_millis(1500));
         
         let mut spawn = Command::new("cargo")
             .arg("run")
@@ -223,7 +218,7 @@ fn main() {
             Goto(1,1),
             BUDDY_PROGRAMS[selected], 
             exit_status);
-        sleep(Duration::from_secs(1));
+        sleep(Duration::from_millis(500));
     }
 
     write!(
@@ -237,7 +232,7 @@ fn main() {
     ).unwrap();
     stdout.flush().unwrap();
 
-    sleep(Duration::from_secs(3));
+    sleep(Duration::from_secs(1));
     write!(
         stdout,
         "{}{}\r",
