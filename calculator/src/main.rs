@@ -170,7 +170,7 @@ fn main() {
 
     write!(
         stdout,
-        "{}{}{}...",
+        "{}{}{}Exiting...",
         clear::All,
         Goto(1,1),
         color::Fg(color::Green)
