@@ -44,11 +44,10 @@ fn main() {
                 Key::Char('\n') => {
                     if let Ok(result) = eval(&input){
                         recents_stack.push(input.to_owned());
-                        input = String::new();
                         offset = 0;
                         write!(
                             stdout,
-                            "\n\r{}{}{}\n\n\r",
+                            "\n\r{} = {}{}\n\n\r",
                             color::Fg(color::Green),
                             result,
                             color::Fg(color::Reset),
@@ -65,21 +64,34 @@ fn main() {
                         stdout.flush().unwrap();
                         sleep(Duration::from_secs(1));
                     }
+                    input = String::new();
                     break;
                 },
                 Key::Up => {
-                    let x = recents_stack.len();
                     let curr_line = stdout.cursor_pos().unwrap().1;
+                    let x = recents_stack.len();
+
                     if (offset as usize) < recents_stack.len(){
                         offset += 1;
                         if let Some(item) = recents_stack.get(x.checked_sub((offset).try_into().unwrap()).unwrap_or_default()){
                             input = item.to_owned();
-                        } else {
-                            input = String::new();
                         }
                         write!(
                             stdout,
-                            "{}{}{}{:?}{}",
+                            "{}{}{}{}{}",
+                            Goto(3, curr_line),
+                            clear::AfterCursor,
+                            color::Fg(color::Yellow),
+                            input,
+                            color::Fg(color::Reset)
+                        ).unwrap();
+                        stdout.flush().unwrap();
+                    } else if (offset as usize) == recents_stack.len(){
+                        offset = 0;
+                        input = String::new();
+                        write!(
+                            stdout,
+                            "{}{}{}{}{}",
                             Goto(3, curr_line),
                             clear::AfterCursor,
                             color::Fg(color::Yellow),
@@ -92,17 +104,21 @@ fn main() {
                 Key::Down => {
                     let curr_line = stdout.cursor_pos().unwrap().1;
                     let x = recents_stack.len();
+                    if offset == 0{
+                        println!("Trying");
+                        if let Some(num) = x.checked_add(1){
+                            offset = num.try_into().unwrap();
+                        }
+                    }
 
                     if offset > 1{
                         offset -= 1;
                         if let Some(item) = recents_stack.get(x.checked_sub((offset).try_into().unwrap()).unwrap_or_default()){
                             input = item.to_owned();
-                        } else {
-                            input = String::new();
                         }
                         write!(
                             stdout,
-                            "{}{}{}{:?}{}",
+                            "{}{}{}{}{}",
                             Goto(3, curr_line),
                             clear::AfterCursor,
                             color::Fg(color::Yellow),
@@ -111,13 +127,15 @@ fn main() {
                         ).unwrap();
                         stdout.flush().unwrap();
                     } else if offset == 1{
-                        offset -= 1;
+                        offset = 0;
+                        input = String::new();
                         write!(
                             stdout,
-                            "{}{}{}",
+                            "{}{}{}{}",
                             Goto(3, curr_line),
                             clear::AfterCursor,
-                            color::Fg(color::Reset)
+                            color::Fg(color::Reset),
+                            input
                         ).unwrap();
                         stdout.flush().unwrap();
                     }
