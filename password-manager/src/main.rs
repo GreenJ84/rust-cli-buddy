@@ -20,7 +20,7 @@ struct User {
 // Register cli user, add, manage, delete passwords
 fn main() {
     let mut stdout = stdout();
-    let db = Connection::open("../../passwords_db.db3");
+    let mut conn = Connection::open("../../passwords_db.db3").unwrap();
 
     write!(
         stdout,
@@ -30,32 +30,22 @@ fn main() {
         color::Fg(color::Green),
         color::Fg(color::Reset)
     ).unwrap();
-    sleep(Duration::from_millis(300));
+    sleep(Duration::from_millis(600));
     let options: [&str; 4] = ["'N'ew password", "'R'etrieve password", "'U'pdate password", "'D'elete password"];
     
     let mut running = true;
     let mut first = true;
     while running {
         let stdin = stdin();
-        if first {
-            write!(
-                stdout,
-                "{}{}{}What can I help with today?{}\n\r",
-                clear::All,
-                cursor::Goto(1, 1),
-                color::Fg(color::Cyan),
-                color::Fg(color::Reset)
-            ).unwrap();
-        } else {
-            write!(
-                stdout,
-                "{}{}{}What can I help with next?{}\n\r",
-                clear::All,
-                cursor::Goto(1, 1),
-                color::Fg(color::Cyan),
-                color::Fg(color::Reset)
-            ).unwrap();
-        }
+        write!(
+            stdout,
+            "{}{}{}What can I help with {}?{}\n\r",
+            clear::All,
+            cursor::Goto(1, 1),
+            color::Fg(color::Cyan),
+            if first { "today "} else { "next" },
+            color::Fg(color::Reset)
+        ).unwrap();
         stdout.flush().unwrap();
         
         let mut selected: u16 = 0;
@@ -138,34 +128,34 @@ fn main() {
                 Key::Char('\n') => {
                     match selected {
                         0 => {
-                            new_pass();
+                            new_pass(&conn);
                         },
                         1 => {
-                            retrieve_pass();
+                            retrieve_pass(&conn);
                         },
                         2 => {
-                            update_pass();
+                            update_pass(&conn);
                         },
                         _ => {
-                            delete_pass();
+                            delete_pass(&conn);
                         }
                     }
                     break;
                 },
                 Key::Char('N') | Key::Char('n') => {
-                    new_pass();
+                    new_pass(&conn);
                     break;
                 },
                 Key::Char('R') | Key::Char('r') => {
-                    retrieve_pass();
+                    retrieve_pass(&conn);
                     break;
                 }, 
                 Key::Char('U') | Key::Char('u') => {
-                    update_pass();
+                    update_pass(&conn);
                     break;
                 },
                 Key::Char('D') | Key::Char('d')=> {
-                    delete_pass();
+                    delete_pass(&conn);
                     break;
                 }
                 _ => {}
@@ -199,7 +189,7 @@ fn main() {
 
 
 }
-fn retrieve_pass(){
+fn retrieve_pass(conn: &Connection){
     let mut password_site: String = String::new();
     if let Some(site) = get_pass_site("retrieve"){
         password_site = site;
@@ -210,7 +200,7 @@ fn retrieve_pass(){
     // conn.execute().unwrap();
 }
 
-fn update_pass(){
+fn update_pass(conn: &Connection){
     let mut password_site: String = String::new();
     if let Some(site) = get_pass_site("update"){
         password_site = site;
@@ -221,7 +211,7 @@ fn update_pass(){
     // conn.execute().unwrap();
 }
 
-fn delete_pass(){
+fn delete_pass(conn: &Connection){
     let mut password_site: String = String::new();
     if let Some(site) = get_pass_site("delete"){
         password_site = site;
@@ -229,7 +219,7 @@ fn delete_pass(){
     write!(stdout(), "delete site: {}", password_site).unwrap();
     stdout().flush().unwrap();
     sleep(Duration::from_millis(500));
-    // conn.execute().unwrap();
+    conn.execute("DELETE FROM passwords ").unwrap();
 }
 
 fn get_pass_site(operation: &str) -> Option<String>{
@@ -274,7 +264,7 @@ fn get_pass_site(operation: &str) -> Option<String>{
     return None;
 }
 
-fn new_pass(){
+fn new_pass(conn: &Connection){
     write!(
         stdout(),
         "{}{}",
