@@ -38,6 +38,7 @@ fn main() {
             conn.execute(
                 "CREATE TABLE passwords (
                     id INTEGER PRIMARY KEY,
+                    site TEXT NOT NULL,
                     username TEXT NOT NULL,
                     email TEXT NOT NULL,
                     password TEXT NOT NULL
