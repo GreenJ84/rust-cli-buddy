@@ -215,11 +215,37 @@ fn delete_pass(conn: &Connection){
     let mut password_site: String = String::new();
     if let Some(site) = get_pass_site("delete"){
         password_site = site;
+    } else { return; }
+    
+    if let Err(err) = conn.execute("DELETE FROM passwords WHERE site = ?", []){
+        write!(
+            stdout(), 
+            "{}Couldn't delete password for {}{}{}{}{}{}: {:?}{}", 
+            color::Fg(color::Red),
+            color::Fg(color::Magenta),
+            style::Bold,
+            style::Underline,
+            password_site,
+            style::Reset,
+            color::Fg(color::Red),
+            err,
+            color::Fg(color::Reset)
+        ).unwrap();
+    } else {
+        write!(
+            stdout(), 
+            "{}Deleted password for {}{}{}{}{}{}", 
+            color::Fg(color::Green),
+            color::Fg(color::Cyan),
+            style::Bold,
+            style::Underline,
+            password_site,
+            style::Reset,
+            color::Fg(color::Reset)
+        ).unwrap();
     }
-    write!(stdout(), "delete site: {}", password_site).unwrap();
     stdout().flush().unwrap();
     sleep(Duration::from_millis(500));
-    conn.execute("DELETE FROM passwords ").unwrap();
 }
 
 fn get_pass_site(operation: &str) -> Option<String>{
@@ -241,6 +267,7 @@ fn get_pass_site(operation: &str) -> Option<String>{
                 return None;
             }
             Key::Char('\n') => {
+                write!(stdout(), "\n\r").unwrap();
                 return Some(input);
             },
             Key::Char(c) => {
