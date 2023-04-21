@@ -338,7 +338,7 @@ fn new_pass(conn: &Connection){
     for (idx, phrase) in info.iter().enumerate(){
         write!(
             stdout(),
-            "\n\r{}{}{}\n\r",
+            "{}{}{}\n\r",
             color::Fg(color::Cyan),
             phrase,
             color::Fg(color::Reset)
@@ -378,6 +378,8 @@ fn new_pass(conn: &Connection){
                         }
                     }
                     input = String::new();
+                    write!(stdout(), "\n\r").unwrap();
+                    stdout().flush().unwrap();
                     break;
                 },
                 Key::Char(c) => {
@@ -425,14 +427,33 @@ fn new_pass(conn: &Connection){
             }
         }
     }
-    write!(
-        stdout(),
-        "\n\rOur new password is: site ({}), user({}), email({}), pass({})",
-        site,
-        username,
-        email,
-        password
-    ).unwrap();
+    if let Err(err) = conn.execute(
+        "INSERT INTO passwords ( site, username, email, password) VALUES (?, ?, ?, ?)",
+        [&site, &username, &email, &password]
+    ){
+        write!(
+            stdout(),
+            "{}There seems to be an error saving you info: {}{}{:?}{}{}",
+            color::Fg(color::Red),
+            color::Fg(color::Magenta),
+            style::Bold,
+            err,
+            style::Reset,
+            color::Fg(color::Reset)
+        ).unwrap();
+    } else{
+        write!(
+            stdout(),
+            "\n\r{}Saved your password information for {}{}{}{}{}{}",
+            color::Fg(color::Green),
+            color::Fg(color::Cyan),
+            style::Bold,
+            style::Underline,
+            site,
+            style::Reset,
+            color::Fg(color::Reset)
+        ).unwrap();
+    }
     stdout().flush().unwrap();
     sleep(Duration::from_millis(1500));
 }
