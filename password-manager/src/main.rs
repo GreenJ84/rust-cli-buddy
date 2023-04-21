@@ -193,18 +193,42 @@ fn retrieve_pass(conn: &Connection){
     let mut password_site: String = String::new();
     if let Some(site) = get_pass_site("retrieve"){
         password_site = site;
+    } else { return; }
+
+    if let Ok(entry) = conn.execute("SELECT * FROM passwords WHERE site = ?", [&password_site]){
+        write!(
+            stdout(),
+            "{}Here is what I have found: {}{}{}{:?}{}{}",
+            color::Fg(color::Green),
+            color::Fg(color::Cyan),
+            style::Bold,
+            style::Underline,
+            entry,
+            style::Reset,
+            color::Fg(color::Reset)
+        ).unwrap()
+    } else {
+        write!(
+            stdout(),
+            "{}I couldn't find anything related to the site {}{}{}{}{}{}",
+            color::Fg(color::Red),
+            color::Fg(color::Magenta),
+            style::Bold,
+            style::Underline,
+            password_site,
+            style::Reset,
+            color::Fg(color::Reset)
+        ).unwrap();
     }
-    write!(stdout(), "retrieve site: {}", password_site).unwrap();
     stdout().flush().unwrap();
     sleep(Duration::from_millis(500));
-    // conn.execute().unwrap();
 }
 
 fn update_pass(conn: &Connection){
     let mut password_site: String = String::new();
     if let Some(site) = get_pass_site("update"){
         password_site = site;
-    }
+    } else { return; }
     write!(stdout(), "update site: {}", password_site).unwrap();
     stdout().flush().unwrap();
     sleep(Duration::from_millis(500));
@@ -217,7 +241,7 @@ fn delete_pass(conn: &Connection){
         password_site = site;
     } else { return; }
     
-    if let Err(err) = conn.execute("DELETE FROM passwords WHERE site = ?", []){
+    if let Err(err) = conn.execute("DELETE FROM passwords WHERE site = ?", [&password_site]){
         write!(
             stdout(), 
             "{}Couldn't delete password for {}{}{}{}{}{}: {:?}{}", 
