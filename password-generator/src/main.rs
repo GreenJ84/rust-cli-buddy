@@ -44,8 +44,8 @@ fn main() {
                     break;
                 },
                 Key::Char('\n') | Key::Char(' ') => {
-                    if let Ok(num) = evalLength(input) {
-                        let password = generatePasword(num);
+                    if let Ok(num) = eval_length(input) {
+                        let password = generate_pasword(num);
                         write!(
                             stdout,
                             "\n\rYour generated password is: {}{}{} \n\n\r",
@@ -95,7 +95,7 @@ fn main() {
     return;
 }
 
-fn evalLength(length: String) -> Result<u32, ()>{
+fn eval_length(length: String) -> Result<u32, ()>{
     if let Ok(num) = length.trim().parse::<u32>(){
         if num < 61 && num > 7{
             Ok(num)
@@ -107,7 +107,7 @@ fn evalLength(length: String) -> Result<u32, ()>{
     }
 }
 
-fn generatePasword(length: u32) -> String {
+fn generate_pasword(length: u32) -> String {
     let mut rng = rand::thread_rng();
     let mut password = String::new();
     for _ in 0..length{
