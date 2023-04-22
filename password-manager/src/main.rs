@@ -195,22 +195,54 @@ fn retrieve_pass(conn: &Connection){
         password_site = site;
     } else { return; }
 
-    if let Ok(entry) = conn.execute("SELECT * FROM passwords WHERE site = ?", [&password_site]){
+    let mut stmt = conn.prepare("SELECT * FROM passwords WHERE site = ?").unwrap();
+    let mut rows = stmt.query(&[&password_site]).unwrap();
+    write!(
+        stdout(),
+        "{}Here is what I have found:",
+        color::Fg(color::Green),
+    ).unwrap();
+
+    let mut entry_found = false;
+    while let Some(row) = rows.next().unwrap() {
+        entry_found = true;
+
+        let username: String = row.get(2).unwrap();
+        let email: String = row.get(3).unwrap();
+        let password: String = row.get(4).unwrap();
         write!(
             stdout(),
-            "{}Here is what I have found: {}{}{}{:?}{}{}",
+            "\n\rSite: {}{}{}{}{}{}\n\rUsername: {}{}{}{}{}{}\n\rEmail: {}{}{}{}{}{}\n\rPassword: {}{}{}{}{}{} \n\n\r",
+            color::Fg(color::Cyan),
+            style::Bold,
+            style::Underline,
+            password_site,
+            style::Reset,
             color::Fg(color::Green),
             color::Fg(color::Cyan),
             style::Bold,
             style::Underline,
-            entry,
+            username,
+            style::Reset,
+            color::Fg(color::Green),
+            color::Fg(color::Cyan),
+            style::Bold,
+            style::Underline,
+            email,
+            style::Reset,
+            color::Fg(color::Green),
+            color::Fg(color::Cyan),
+            style::Bold,
+            style::Underline,
+            password,
             style::Reset,
             color::Fg(color::Reset)
         ).unwrap()
-    } else {
+    } 
+    if !entry_found {
         write!(
             stdout(),
-            "{}I couldn't find anything related to the site {}{}{}{}{}{}",
+            "{}There seems to be no results related to the site {}{}{}{}{}{}",
             color::Fg(color::Red),
             color::Fg(color::Magenta),
             style::Bold,
@@ -221,7 +253,14 @@ fn retrieve_pass(conn: &Connection){
         ).unwrap();
     }
     stdout().flush().unwrap();
-    sleep(Duration::from_millis(500));
+    for key in stdin().keys(){
+        match key.unwrap(){
+            Key::Esc | Key::Char('\n') | Key::Char(' ') => {
+                break;
+            },
+            _ => {}
+        }
+    }
 }
 
 fn update_pass(conn: &Connection){
@@ -229,10 +268,8 @@ fn update_pass(conn: &Connection){
     if let Some(site) = get_pass_site("update"){
         password_site = site;
     } else { return; }
-    write!(stdout(), "update site: {}", password_site).unwrap();
     stdout().flush().unwrap();
     sleep(Duration::from_millis(500));
-    // conn.execute().unwrap();
 }
 
 fn delete_pass(conn: &Connection){
