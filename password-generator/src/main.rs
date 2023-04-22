@@ -10,6 +10,7 @@ use termion::cursor::{Goto, Show, Hide, BlinkingUnderline, Left};
 use termion::event::Key;
 use rand::Rng;
 use rand::seq::SliceRandom;
+use rusqlite::Connection;
 
 fn main() {
     let mut stdout = stdout().into_raw_mode().unwrap();
@@ -143,7 +144,7 @@ fn main() {
         if !running { break; }
 
         write!(stdout,
-            "{}Is there a custom password portion you would like to enter? (within to your desired length)\n\r{}> {}",
+            "{}Enter a custom password portion you if you would like? Or leave blank.\n\r{}> {}",
             color::Fg(color::Cyan),
             color::Fg(color::Red),
             color::Fg(color::Reset),
@@ -151,7 +152,7 @@ fn main() {
         stdout.flush().unwrap();
 
         let mut root = String::new();
-        let password: String;
+        let mut password: String = String::new();
         for key in stdin().keys(){
             stdout.flush().unwrap();
             match key.unwrap() {
@@ -272,35 +273,36 @@ fn main() {
             if !saving { break; }
         }
         if saving {
-        // if let Err(err) = conn.execute(
-        //     "INSERT INTO passwords ( site, username, email, password) VALUES (?, ?, ?, ?)",
-        //     [&site, &username, &email, &password]
-        // ){
-        //     write!(
-        //         stdout,
-        //         "{}There seems to be an error saving you info: {}{}{:?}{}{}",
-        //         color::Fg(color::Red),
-        //         color::Fg(color::Magenta),
-        //         style::Bold,
-        //         err,
-        //         style::Reset,
-        //         color::Fg(color::Reset)
-        //     ).unwrap();
-        // } else{
-        //     write!(
-        //         stdout,
-        //         "\n\r{}Saved your password information for {}{}{}{}{}{}",
-        //         color::Fg(color::Green),
-        //         color::Fg(color::Cyan),
-        //         style::Bold,
-        //         style::Underline,
-        //         site,
-        //         style::Reset,
-        //         color::Fg(color::Reset)
-        //     ).unwrap();
-        // }
-        }
+            let conn = Connection::open("../../passwords_db.db3").unwrap();
 
+            if let Err(err) = conn.execute(
+                "INSERT INTO passwords ( site, username, email, password) VALUES (?, ?, ?, ?)",
+                [&site, &username, &email, &password]
+            ){
+                write!(
+                    stdout,
+                    "{}There seems to be an error saving you info: {}{}{:?}{}{}",
+                    color::Fg(color::Red),
+                    color::Fg(color::Magenta),
+                    style::Bold,
+                    err,
+                    style::Reset,
+                    color::Fg(color::Reset)
+                ).unwrap();
+            } else{
+                write!(
+                    stdout,
+                    "\n\r{}Saved your password information for {}{}{}{}{}{}",
+                    color::Fg(color::Green),
+                    color::Fg(color::Cyan),
+                    style::Bold,
+                    style::Underline,
+                    site,
+                    style::Reset,
+                    color::Fg(color::Reset)
+                ).unwrap();
+            }
+        }
         stdout.flush().unwrap();
         sleep(Duration::from_millis(1500));
     }
