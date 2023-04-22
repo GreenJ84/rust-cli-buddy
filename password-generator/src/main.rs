@@ -195,15 +195,16 @@ fn main() {
 
     write!(
         stdout,
-        "{}{}{}Password generator shutting down..",
+        "{}{}{}Shutting down..",
         clear::All,
         Goto(1,1),
         color::Fg(color::Red)
     ).unwrap();
+    sleep(Duration::from_millis(200));
     for _ in 0..5{
         write!(
             stdout,
-            "...",
+            "..",
         ).unwrap();
         stdout.flush().unwrap();
         sleep(Duration::from_millis(200));
@@ -215,7 +216,7 @@ fn main() {
         color::Fg(color::Reset)
     ).unwrap();
     stdout.flush().unwrap();
-    sleep(Duration::from_secs(1));
+    sleep(Duration::from_millis(500));
     return;
 }
 
