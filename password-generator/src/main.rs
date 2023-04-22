@@ -5,7 +5,8 @@ use termion::raw::IntoRawMode;
 use termion::input::TermRead;
 use termion::clear;
 use termion::color;
-use termion::cursor::{Goto, Show, BlinkingUnderline, Left};
+use termion::style;
+use termion::cursor::{Goto, Show, Hide, BlinkingUnderline, Left};
 use termion::event::Key;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -69,7 +70,6 @@ fn main() {
                             stdout,
                             "{}", c,
                         ).unwrap();
-                        stdout.flush().unwrap();
                     },
                     _ => {},
                 }
@@ -118,26 +118,29 @@ fn main() {
                 }
                 stdout.flush().unwrap();
             }
-            if running && !length_prompt{
-                if let Ok(num) = eval_length(&input) {
-                    length = num;
-                    break;
-                } else{
-                    length = 0;
-                    length_prompt = true;
-                    input.clear();
-                    write!(
-                        stdout,
-                        "\n\r{}Length unable to be implemented.{}\n\n\r",
-                        color::Fg(color::Red),
-                        color::Fg(color::Reset),
-                    ).unwrap();
-                    stdout.flush().unwrap();
-                    sleep(Duration::from_millis(800));
+
+            if running {
+                if !length_prompt{
+                    if let Ok(num) = eval_length(&input) {
+                        length = num;
+                        break;
+                    } else{
+                        length = 0;
+                        length_prompt = true;
+                        input.clear();
+                        write!(
+                            stdout,
+                            "\n\r{}Length unable to be implemented.{}\n\n\r",
+                            color::Fg(color::Red),
+                            color::Fg(color::Reset),
+                        ).unwrap();
+                        stdout.flush().unwrap();
+                        sleep(Duration::from_millis(800));
+                    }
                 }
-            }
+            } else { break; }
         }
-        if !running{ break; }
+        if !running { break; }
 
         write!(stdout,
             "{}Is there a custom password portion you would like to enter? (within to your desired length)\n\r{}> {}",
@@ -148,6 +151,7 @@ fn main() {
         stdout.flush().unwrap();
 
         let mut root = String::new();
+        let password: String;
         for key in stdin().keys(){
             stdout.flush().unwrap();
             match key.unwrap() {
@@ -156,7 +160,7 @@ fn main() {
                     break;
                 },
                 Key::Char('\n') | Key::Char(' ') => {
-                    let password = generate_pasword(length, &root);
+                    password = generate_pasword(length, &root);
                     write!(
                         stdout,
                         "\n\rYour generated password is: {}{}{} \n\n\r",
@@ -183,14 +187,122 @@ fn main() {
                         stdout,
                         "{}", c,
                     ).unwrap();
-                    stdout.flush().unwrap();
                 },
                 _ => {},
             }
-
             stdout.flush().unwrap();
         }
         if !running{ break; }
+
+        let info: [&str; 4] = [
+            "Would you like to save this new password? (y/n)",
+            "What SITE will the password be for?", 
+            "What is the USERNAME associated with the password for this site?",
+            "Is there am EMAIL associated with the password or site?",
+        ];
+
+        let mut site = String::new();
+        let mut username = String::new();
+        let mut email = String::new();
+
+        let mut saving = true;
+        for (idx, phrase) in info.iter().enumerate(){
+            write!(
+                stdout,
+                "{}{}{}\n\r{}{}",
+                color::Fg(color::Cyan),
+                phrase,
+                color::Fg(color::Reset),
+                Show,
+                BlinkingUnderline
+            ).unwrap();
+            stdout.flush().unwrap();
+
+            let mut input = String::new();
+            for key in stdin().keys(){
+                match key.unwrap(){
+                    Key::Esc => {
+                        saving = false;
+                        return;
+                    },
+                    Key::Delete | Key::Backspace => {
+                        if input.len() > 0 as usize {
+                            input.pop();
+                            write!(
+                                stdout,
+                                "{}{}",
+                                Left(1),
+                                clear::AfterCursor,
+                            ).unwrap();
+                        }
+                    },
+                    Key::Char('\n') => {
+                        match idx {
+                            0 => {
+                                match &*input.to_lowercase() {
+                                    "y" | "yes" => {},
+                                    _ => {
+                                        saving = false;
+                                    }
+                                }
+                            },
+                            1 => {
+                                site = input.to_owned();
+                            },
+                            2 => {
+                                username = input.to_owned();
+                            },
+                            _ => {
+                                email = input.to_owned();
+                            }, 
+                        }
+                        input.clear();
+                        write!(stdout, "\n\r{}", Hide).unwrap();
+                        stdout.flush().unwrap();
+                        break;
+                    },
+                    Key::Char(c) => {
+                        input.push(c);
+                        write!(stdout, "{}", c).unwrap();
+                    },
+                    _ => {}
+                }
+                stdout.flush().unwrap();
+            }
+            if !saving { break; }
+        }
+        if saving {
+        // if let Err(err) = conn.execute(
+        //     "INSERT INTO passwords ( site, username, email, password) VALUES (?, ?, ?, ?)",
+        //     [&site, &username, &email, &password]
+        // ){
+        //     write!(
+        //         stdout,
+        //         "{}There seems to be an error saving you info: {}{}{:?}{}{}",
+        //         color::Fg(color::Red),
+        //         color::Fg(color::Magenta),
+        //         style::Bold,
+        //         err,
+        //         style::Reset,
+        //         color::Fg(color::Reset)
+        //     ).unwrap();
+        // } else{
+        //     write!(
+        //         stdout,
+        //         "\n\r{}Saved your password information for {}{}{}{}{}{}",
+        //         color::Fg(color::Green),
+        //         color::Fg(color::Cyan),
+        //         style::Bold,
+        //         style::Underline,
+        //         site,
+        //         style::Reset,
+        //         color::Fg(color::Reset)
+        //     ).unwrap();
+        // }
+        }
+
+        stdout.flush().unwrap();
+        sleep(Duration::from_millis(1500));
     }
 
     write!(
