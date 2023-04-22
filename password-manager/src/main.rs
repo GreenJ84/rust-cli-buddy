@@ -43,7 +43,7 @@ fn main() {
             clear::All,
             cursor::Goto(1, 1),
             color::Fg(color::Cyan),
-            if first { "today "} else { "next" },
+            if first { "today" } else { "next" },
             color::Fg(color::Reset)
         ).unwrap();
         stdout.flush().unwrap();
@@ -242,7 +242,7 @@ fn retrieve_pass(conn: &Connection){
     if !entry_found {
         write!(
             stdout(),
-            "{}There seems to be no results related to the site {}{}{}{}{}{}",
+            "\n\r{}There seems to be no results related to the site {}{}{}{}{}{}",
             color::Fg(color::Red),
             color::Fg(color::Magenta),
             style::Bold,
@@ -371,11 +371,35 @@ fn update_pass(conn: &Connection){
     sleep(Duration::from_millis(500));
 
     if let Err(err) = conn.execute(
-        "UPDATE passwords SET password = ? WHERE site = ?",
-        [ &password_site]
+        "UPDATE passwords SET username = ?, email = ?, password = ? WHERE site = ?",
+        [ &username, &email, &password, &password_site]
     ){
-
+        write!(
+            stdout(),
+            "{}There has been an error updating you password related for {}{}{}{}{}{}",
+            color::Fg(color::Red),
+            color::Fg(color::Magenta),
+            style::Bold,
+            style::Underline,
+            password_site,
+            style::Reset,
+            color::Fg(color::Reset)
+        ).unwrap();
+    } else{
+        write!(
+            stdout(),
+            "{}I have successfully updated you password for {}{}{}{}{}{}",
+            color::Fg(color::Green),
+            color::Fg(color::Cyan),
+            style::Bold,
+            style::Underline,
+            password_site,
+            style::Reset,
+            color::Fg(color::Reset)
+        ).unwrap();
     }
+    stdout().flush().unwrap();
+    sleep(Duration::from_millis(800));
 }
 
 fn delete_pass(conn: &Connection){
