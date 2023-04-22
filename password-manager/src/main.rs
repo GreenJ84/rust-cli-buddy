@@ -9,18 +9,10 @@ use termion::cursor;
 use termion::input::TermRead;
 use termion::event::{Key};
 
-#[derive(Debug)]
-struct User {
-    id: u32,
-    site: String,
-    username: String,
-    email: String,
-    password: String
-}
 // Register cli user, add, manage, delete passwords
 fn main() {
     let mut stdout = stdout();
-    let mut conn = Connection::open("../../passwords_db.db3").unwrap();
+    let conn = Connection::open("../../passwords_db.db3").unwrap();
 
     write!(
         stdout,
@@ -39,9 +31,10 @@ fn main() {
         let stdin = stdin();
         write!(
             stdout,
-            "{}{}{}What can I help with {}?{}\n\r",
+            "{}{}{}{}What can I help with {}?{}\n\r",
             clear::All,
             cursor::Goto(1, 1),
+            cursor::Hide,
             color::Fg(color::Cyan),
             if first { "today" } else { "next" },
             color::Fg(color::Reset)
@@ -190,7 +183,7 @@ fn main() {
 
 }
 fn retrieve_pass(conn: &Connection){
-    let mut password_site: String = String::new();
+    let password_site: String;
     if let Some(site) = get_pass_site("retrieve"){
         password_site = site;
     } else { return; }
@@ -264,7 +257,7 @@ fn retrieve_pass(conn: &Connection){
 }
 
 fn update_pass(conn: &Connection){
-    let mut password_site: String = String::new();
+    let password_site: String;
     if let Some(site) = get_pass_site("update"){
         password_site = site;
     } else { return; }
@@ -281,10 +274,12 @@ fn update_pass(conn: &Connection){
     for (idx, phrase) in info.iter().enumerate(){
         write!(
             stdout(),
-            "{}{}{}\n\r",
+            "{}{}{}\n\r{}{}",
             color::Fg(color::Cyan),
             phrase,
-            color::Fg(color::Reset)
+            color::Fg(color::Reset),
+            cursor::BlinkingUnderline,
+            cursor::Show
         ).unwrap();
         stdout().flush().unwrap();
 
@@ -317,8 +312,8 @@ fn update_pass(conn: &Connection){
                             password = input.to_owned();
                         }
                     }
-                    input = String::new();
-                    write!(stdout(), "\n\r").unwrap();
+                    input.clear();
+                    write!(stdout(), "\n\r{}", cursor::Hide).unwrap();
                     stdout().flush().unwrap();
                     break;
                 },
@@ -376,13 +371,15 @@ fn update_pass(conn: &Connection){
     ){
         write!(
             stdout(),
-            "{}There has been an error updating you password related for {}{}{}{}{}{}",
+            "{}There has been an error updating your password for {}{}{}{}{}{}: {:?}{}",
             color::Fg(color::Red),
             color::Fg(color::Magenta),
             style::Bold,
             style::Underline,
             password_site,
             style::Reset,
+            color::Fg(color::Red),
+            err,
             color::Fg(color::Reset)
         ).unwrap();
     } else{
@@ -403,12 +400,52 @@ fn update_pass(conn: &Connection){
 }
 
 fn delete_pass(conn: &Connection){
-    let mut password_site: String = String::new();
+    let password_site: String;
     if let Some(site) = get_pass_site("delete"){
         password_site = site;
     } else { return; }
+
+    write!(
+        stdout(),
+        "{}What is your USERNAME associated with this password at {}?{}\n\r{}{}",
+        color::Fg(color::Cyan),
+        password_site,
+        color::Fg(color::Reset),
+        cursor::Show,
+        cursor::BlinkingUnderline
+    ).unwrap();
+    stdout().flush().unwrap();
+
+    let mut username: String = String::new();
+    for key in stdin().keys(){
+        match key.unwrap(){
+            Key::Char('q') | Key::Esc => {
+                return;
+            },
+            Key::Delete => {
+                username.pop();
+                write!(
+                    stdout(), 
+                    "{}{}",
+                    cursor::Left(1),
+                    clear::AfterCursor,
+                ).unwrap();
+            },
+            Key::Char('\n') => {
+                write!(stdout(), "\n\r{}", cursor::Hide).unwrap();
+                stdout().flush().unwrap();
+                break;
+            },
+            Key::Char(c) => {
+                username.push(c);
+                write!(stdout(), "{}", c).unwrap();
+            },
+            _ => {}
+        }
+        stdout().flush().unwrap();
+    }
     
-    if let Err(err) = conn.execute("DELETE FROM passwords WHERE site = ?", [&password_site]){
+    if let Err(err) = conn.execute("DELETE FROM passwords WHERE site = ? and username = ?", [&password_site, &username]){
         write!(
             stdout(), 
             "{}Couldn't delete password for {}{}{}{}{}{}: {:?}{}", 
@@ -436,18 +473,20 @@ fn delete_pass(conn: &Connection){
         ).unwrap();
     }
     stdout().flush().unwrap();
-    sleep(Duration::from_millis(500));
+    sleep(Duration::from_millis(1500));
 }
 
 fn get_pass_site(operation: &str) -> Option<String>{
     write!(
         stdout(),
-        "{}{}{}For what site would you like to {} your password?{}\n\r",
+        "{}{}{}For what site would you like to {} your password?{}\n\r{}{}",
         clear::All,
         cursor::Goto(1,1),
         color::Fg(color::Cyan),
         operation,
-        color::Fg(color::Reset)
+        color::Fg(color::Reset),
+        cursor::Show,
+        cursor::BlinkingUnderline
     ).unwrap();
     stdout().flush().unwrap();
 
@@ -458,7 +497,7 @@ fn get_pass_site(operation: &str) -> Option<String>{
                 return None;
             }
             Key::Char('\n') => {
-                write!(stdout(), "\n\r").unwrap();
+                write!(stdout(), "\n\r{}", cursor::Hide).unwrap();
                 return Some(input);
             },
             Key::Char(c) => {
@@ -505,10 +544,12 @@ fn new_pass(conn: &Connection){
     for (idx, phrase) in info.iter().enumerate(){
         write!(
             stdout(),
-            "{}{}{}\n\r",
+            "{}{}{}\n\r{}{}",
             color::Fg(color::Cyan),
             phrase,
-            color::Fg(color::Reset)
+            color::Fg(color::Reset),
+            cursor::Show,
+            cursor::BlinkingUnderline
         ).unwrap();
         stdout().flush().unwrap();
 
@@ -544,8 +585,8 @@ fn new_pass(conn: &Connection){
                             password = input.to_owned();
                         }
                     }
-                    input = String::new();
-                    write!(stdout(), "\n\r").unwrap();
+                    input.clear();
+                    write!(stdout(), "\n\r{}", cursor::Hide).unwrap();
                     stdout().flush().unwrap();
                     break;
                 },
