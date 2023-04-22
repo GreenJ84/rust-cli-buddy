@@ -6,7 +6,7 @@ use std::thread::sleep;
 use termion::clear;
 use termion::color;
 use termion::style;
-use termion::cursor::{Goto, Hide, Show};
+use termion::cursor::{Goto, Hide, Show, BlinkingBlock};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
@@ -258,13 +258,17 @@ fn main() {
         color::Fg(color::Reset),
     ).unwrap();
     stdout.flush().unwrap();
-
     sleep(Duration::from_secs(1));
+
+    drop(&mut stdout);
     write!(
         stdout,
-        "{}{}\r",
+        "{}{}{}\r",
         clear::All,
+        BlinkingBlock,
         Show
     ).unwrap();
+    stdout.flush().unwrap();
+
     return;
 }
