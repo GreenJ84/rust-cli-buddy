@@ -34,12 +34,14 @@ fn main() {
         let mut length: u32 = 0;
         while length_prompt{
             write!(stdout,
-                "{}{}{}How many digits would you like your password to be? (6-60)\n\r{}> {}",
+                "{}{}{}How many digits would you like your password to be? (6-60)\n\r{}> {}{}{}",
                 clear::All,
                 Goto(1,1),
                 color::Fg(color::Cyan),
                 color::Fg(color::Red),
                 color::Fg(color::Reset),
+                Show,
+                BlinkingUnderline
             ).unwrap();
             stdout.flush().unwrap();
 
@@ -49,10 +51,11 @@ fn main() {
                     Key::Char('q') | Key::Esc => {
                         running = false;
                         length_prompt = false;
+                        write!(stdout, "\n\r{}", Hide).unwrap();
                         break;
                     },
                     Key::Char('\n') | Key::Char(' ') => {
-                        write!(stdout, "\n\r").unwrap();
+                        write!(stdout, "\n\r{}", Hide).unwrap();
                         length_prompt = false;
                         break;
                     },
@@ -79,7 +82,7 @@ fn main() {
                         0..=7 | 61.. => {
                             write!(
                                 stdout,
-                                "\r{}{}{}{}",
+                                "\r{}{}> {}{}",
                                 clear::AfterCursor,
                                 color::Fg(color::Red),
                                 input,
@@ -89,8 +92,9 @@ fn main() {
                         8..=12 => {
                             write!(
                                 stdout,
-                                "\r{}{}{}{}",
+                                "\r{}{}> {}{}{}",
                                 clear::AfterCursor,
+                                color::Fg(color::Red),
                                 color::Fg(color::Yellow),
                                 input,
                                 color::Fg(color::Reset)
@@ -99,8 +103,9 @@ fn main() {
                         13..=60 => {
                             write!(
                                 stdout,
-                                "\r{}{}{}{}",
+                                "\r{}{}> {}{}{}",
                                 clear::AfterCursor,
+                                color::Fg(color::Red),
                                 color::Fg(color::Green),
                                 input,
                                 color::Fg(color::Reset)
@@ -110,7 +115,7 @@ fn main() {
                 } else {
                     write!(
                         stdout,
-                        "\r{}{}{}{}",
+                        "\r{}{}> {}{}",
                         clear::AfterCursor,
                         color::Fg(color::Red),
                         input,
@@ -124,7 +129,6 @@ fn main() {
                 if !length_prompt{
                     if let Ok(num) = eval_length(&input) {
                         length = num;
-                        break;
                     } else{
                         length = 0;
                         length_prompt = true;
@@ -144,10 +148,12 @@ fn main() {
         if !running { break; }
 
         write!(stdout,
-            "{}Enter a custom password portion you if you would like? Or leave blank.\n\r{}> {}",
+            "{}Enter a custom password portion you if you would like? Or leave blank.\n\r{}> {}{}{}",
             color::Fg(color::Cyan),
             color::Fg(color::Red),
             color::Fg(color::Reset),
+            Show,
+            BlinkingUnderline,
         ).unwrap();
         stdout.flush().unwrap();
 
@@ -164,13 +170,14 @@ fn main() {
                     password = generate_pasword(length, &root);
                     write!(
                         stdout,
-                        "\n\rYour generated password is: {}{}{} \n\n\r",
+                        "\n\rYour generated password is: {}{}{}{} \n\n\r",
                         color::Fg(color::Green),
                         password,
                         color::Fg(color::Reset),
+                        Hide
                     ).unwrap();
                     stdout.flush().unwrap();
-                    sleep(Duration::from_secs(5));
+                    sleep(Duration::from_millis(2500));
                     break;
                 },
                 Key::Delete | Key::Backspace => {
@@ -210,9 +217,10 @@ fn main() {
         for (idx, phrase) in info.iter().enumerate(){
             write!(
                 stdout,
-                "{}{}{}\n\r{}{}",
+                "{}{}\n\r{}> {}{}{}",
                 color::Fg(color::Cyan),
                 phrase,
+                color::Fg(color::Red),
                 color::Fg(color::Reset),
                 Show,
                 BlinkingUnderline
@@ -222,7 +230,7 @@ fn main() {
             let mut input = String::new();
             for key in stdin().keys(){
                 match key.unwrap(){
-                    Key::Esc => {
+                    Key::Esc | Key::Char('q') => {
                         saving = false;
                         return;
                     },
@@ -302,9 +310,36 @@ fn main() {
                     color::Fg(color::Reset)
                 ).unwrap();
             }
+            stdout.flush().unwrap();
+            sleep(Duration::from_millis(2000));
         }
         stdout.flush().unwrap();
-        sleep(Duration::from_millis(1500));
+
+        write!(
+            stdout, 
+            "{}{}{}Would you like to generate another password? y/n\n\r{}> {}{}{}",
+            clear::All,
+            Goto(1,1),
+            color::Fg(color::Cyan),
+            color::Fg(color::Red),
+            color::Fg(color::Reset),
+            Show,
+            BlinkingUnderline
+        ).unwrap();
+        stdout.flush().unwrap();
+
+        for key in stdin().keys(){
+            match key.unwrap(){
+                Key::Esc | Key::Char('q') | Key::Char('n') => {
+                    running = false;
+                    break;
+                },
+                Key::Char('\n') | Key::Char('y') => {
+                    break;
+                },
+                _ => {}
+            }
+        }
     }
 
     write!(
@@ -325,9 +360,10 @@ fn main() {
     }
     write!(
         stdout,
-        "...{}Good Bye!{}",
+        "...{}Good Bye!{}{}",
         color::Fg(color::Green),
-        color::Fg(color::Reset)
+        color::Fg(color::Reset),
+        Hide
     ).unwrap();
     stdout.flush().unwrap();
     sleep(Duration::from_millis(500));
