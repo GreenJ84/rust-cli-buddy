@@ -22,7 +22,6 @@ members = [
 termion = "1.5.6"
 rand = "0.8.4"
 rusqlite = "0.25.0"
-rust-crypto = "0.2"
 
 
 
