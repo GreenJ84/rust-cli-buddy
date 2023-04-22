@@ -268,8 +268,114 @@ fn update_pass(conn: &Connection){
     if let Some(site) = get_pass_site("update"){
         password_site = site;
     } else { return; }
+
+    let info: [&str; 3] = [
+            "What is the USERNAME that will be associated with this password?",
+            "What is the EMAIL associated with the password or site? (or N/A)",
+            "What is your new PASSWORD?"
+    ];
+    let mut username = String::new();
+    let mut email = String::new();
+    let mut password = String::new();
+
+    for (idx, phrase) in info.iter().enumerate(){
+        write!(
+            stdout(),
+            "{}{}{}\n\r",
+            color::Fg(color::Cyan),
+            phrase,
+            color::Fg(color::Reset)
+        ).unwrap();
+        stdout().flush().unwrap();
+
+        let mut input = String::new();
+        for key in stdin().keys(){
+            match key.unwrap(){
+                Key::Esc => {
+                    return;
+                },
+                Key::Delete | Key::Backspace => {
+                    if input.len() > 0 as usize {
+                        input.pop();
+                        write!(
+                            stdout(),
+                            "{}{}",
+                            cursor::Left(1),
+                            clear::AfterCursor,
+                        ).unwrap();
+                        stdout().flush().unwrap();}
+                },
+                Key::Char('\n') => {
+                    match idx {
+                        0 => {
+                            username = input.to_owned();
+                        },
+                        1 => {
+                            email = input.to_owned();
+                        }, 
+                        _ => {
+                            password = input.to_owned();
+                        }
+                    }
+                    input = String::new();
+                    write!(stdout(), "\n\r").unwrap();
+                    stdout().flush().unwrap();
+                    break;
+                },
+                Key::Char(c) => {
+                    input.push(c);
+                    write!(stdout(), "{}", c).unwrap();
+                },
+                _ => {}
+            }
+            stdout().flush().unwrap();
+            if idx == 2 {
+                match input.len() {
+                    0 => {},
+                    1 | 2 | 3 | 4 | 5 | 6 => {
+                        write!(
+                            stdout(),
+                            "\r{}{}{}",
+                            clear::AfterCursor,
+                            color::Fg(color::Red),
+                            input
+                        ).unwrap();
+                        stdout().flush().unwrap();
+                    },
+                    7 | 8 | 9 | 10 | 11 => {
+                        write!(
+                            stdout(),
+                            "\r{}{}{}",
+                            clear::AfterCursor,
+                            color::Fg(color::Yellow),
+                            input
+                        ).unwrap();
+                        stdout().flush().unwrap();
+                    },
+                    _ => {
+                        write!(
+                            stdout(),
+                            "\r{}{}{}",
+                            clear::AfterCursor,
+                            color::Fg(color::Green),
+                            input
+                        ).unwrap();
+                        stdout().flush().unwrap();
+                    }
+                }
+                stdout().flush().unwrap();
+            }
+        }
+    }
     stdout().flush().unwrap();
     sleep(Duration::from_millis(500));
+
+    if let Err(err) = conn.execute(
+        "UPDATE passwords SET password = ? WHERE site = ?",
+        [ &password_site]
+    ){
+
+    }
 }
 
 fn delete_pass(conn: &Connection){
