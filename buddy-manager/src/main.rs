@@ -84,7 +84,7 @@ fn main() {
                     Goto(1, (i+4) as u16),
                     color::Fg(color::Red),
                     style::Bold,
-                    program.to_uppercase(),
+                    format_name(program).to_uppercase(),
                     color::Fg(color::Reset),
                     style::Reset
                 ).unwrap();
@@ -94,7 +94,7 @@ fn main() {
                     "{}{}{}",
                     Goto(1, (i+4) as u16),
                     color::Fg(color::Reset),
-                    program,
+                    format_name(program),
                 ).unwrap();
             }
         }
@@ -111,7 +111,7 @@ fn main() {
                             Goto(1, selected as u16 + 4),
                             clear::CurrentLine,
                             color::Fg(color::Reset),
-                            BUDDY_PROGRAMS[selected]
+                            format_name(BUDDY_PROGRAMS[selected])
                         ).unwrap();
                         selected -= 1;
                         write!(
@@ -121,7 +121,7 @@ fn main() {
                             clear::CurrentLine,
                             color::Fg(color::Red),
                             style::Bold,
-                            BUDDY_PROGRAMS[selected].to_uppercase(),
+                            format_name(BUDDY_PROGRAMS[selected]).to_uppercase(),
                             color::Fg(color::Reset),
 
                             style::Reset
@@ -136,7 +136,7 @@ fn main() {
                             Goto(1, selected as u16 + 4),
                             clear::CurrentLine,
                             color::Fg(color::Reset),
-                            BUDDY_PROGRAMS[selected],
+                            format_name(BUDDY_PROGRAMS[selected]),
                         ).unwrap();
                         selected += 1;
                         write!(
@@ -146,7 +146,7 @@ fn main() {
                             clear::CurrentLine,
                             color::Fg(color::Red),
                             style::Bold,
-                            BUDDY_PROGRAMS[selected].to_uppercase(),
+                            format_name(BUDDY_PROGRAMS[selected]).to_uppercase(),
                             color::Fg(color::Reset),
                             style::Reset
                         ).unwrap();
@@ -271,4 +271,14 @@ fn main() {
     stdout.flush().unwrap();
 
     return;
+}
+
+fn format_name(program: &str) -> String{
+    let mut title = String::new();
+    for (idx, word) in program.split('-').enumerate(){
+        title.push_str(&word[0..1].to_uppercase());
+        title.push_str(&word[1..]);
+        title.push(' ');
+    }
+    title
 }
