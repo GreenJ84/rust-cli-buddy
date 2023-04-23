@@ -5,7 +5,7 @@ use termion::input::TermRead;
 use termion::clear;
 use termion::color;
 use termion::style;
-use termion::cursor::{Goto, Show, Left, BlinkingUnderline, DetectCursorPos};
+use termion::cursor::{Goto, Show, Hide, Left, BlinkingUnderline, DetectCursorPos};
 use termion::event::Key;
 
 fn main() {
@@ -173,7 +173,7 @@ fn main() {
         "{}{}{}Exiting...",
         clear::All,
         Goto(1,1),
-        color::Fg(color::Green)
+        color::Fg(color::Red)
     ).unwrap();
     for _ in 0..4 {
         write!(
@@ -185,8 +185,11 @@ fn main() {
     }
     write!(
         stdout,
-        "...calculate ya later.{}",
-        color::Fg(color::Reset)
+        "...{}calculate ya later.{}{}",
+        color::Fg(color::Green),
+        color::Fg(color::Reset),
+        Hide,
+
     ).unwrap();
     stdout.flush().unwrap();
     sleep(Duration::from_secs(1));
