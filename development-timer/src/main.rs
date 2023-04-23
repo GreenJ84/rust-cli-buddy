@@ -88,9 +88,11 @@ fn main() {
                     }
                     write!(
                         stdout,
-                        "{}Opening: {}{}{}",
-                        cursor::Goto(1, options.len() as u16 + 3),
+                        "{}{}{}Opening: {}{}{}",
+                        cursor::Goto(1, 1),
+                        clear::All,
                         color::Fg(color::Green),
+                        color::Fg(color::Cyan),
                         options[selected as usize],
                         color::Fg(color::Reset),
                     ).unwrap();
@@ -101,19 +103,20 @@ fn main() {
                         write!(
                             stdout,
                             "{}{}{}    {}",
-                            clear::CurrentLine,
                             cursor::Goto(1, selected as u16 + 2),
+                            clear::CurrentLine,
                             color::Fg(color::Reset),
                             options[selected as usize],
                         ).unwrap();
                         selected -= 1;
                         write!(
                             stdout,
-                            "{}{}{}  > {}",
-                            clear::CurrentLine,
+                            "{}{}{}  > {}{}",
                             cursor::Goto(1, selected as u16 + 2),
-                            color::Fg(color::Reset),
+                            clear::CurrentLine,
+                            color::Fg(color::Red),
                             options[selected as usize].to_uppercase(),
+                            color::Fg(color::Reset),
                         ).unwrap();
                     }
                 },
@@ -122,19 +125,20 @@ fn main() {
                         write!(
                             stdout,
                             "{}{}{}    {}",
-                            clear::CurrentLine,
                             cursor::Goto(1, selected as u16 + 2),
+                            clear::CurrentLine,
                             color::Fg(color::Reset),
                             options[selected as usize],
                         ).unwrap();
                         selected += 1;
                         write!(
                             stdout,
-                            "{}{}{}  > {}",
-                            clear::CurrentLine,
+                            "{}{}{}  > {}{}",
                             cursor::Goto(1, selected as u16 + 2),
-                            color::Fg(color::Reset),
+                            clear::CurrentLine,
+                            color::Fg(color::Red),
                             options[selected as usize].to_uppercase(),
+                            color::Fg(color::Reset)
                         ).unwrap();
                     }
                 },
@@ -143,15 +147,8 @@ fn main() {
             stdout.flush().unwrap();
         }
 
-        write!(
-            stdout,
-            "{}{}Doing timer things",
-            clear::All,
-            cursor::Goto(1,1),
-        ).unwrap();
         stdout.flush().unwrap();
         sleep(Duration::from_millis(800));
-        running = false;
     }
 
     write!(
