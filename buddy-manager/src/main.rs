@@ -11,7 +11,8 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 
-const BUDDY_PROGRAMS: [&str; 7] = [
+const BUDDY_PROGRAMS: [&str; 8] = [
+    "ai-assistant",
     "calculator",
     "development-timer",
     "file-organizer",
@@ -23,7 +24,6 @@ const BUDDY_PROGRAMS: [&str; 7] = [
 
 fn main() {
     if let Ok(conn) = Connection::open("../../passwords_db.db3"){
-        println!("Inside connection");
         // Check if the table already exists
         let table_exists: bool = conn
             .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='passwords'")
@@ -183,7 +183,7 @@ fn main() {
                         Goto(1, 1),
                         color::Fg(color::Green),
                         style::Underline,
-                        BUDDY_PROGRAMS[selected].to_uppercase(),
+                        format_name(BUDDY_PROGRAMS[selected]).to_uppercase(),
                         Goto(1, 2),
                         style::NoUnderline,
                     ).unwrap();
@@ -276,6 +276,11 @@ fn main() {
 fn format_name(program: &str) -> String{
     let mut title = String::new();
     for (idx, word) in program.split('-').enumerate(){
+        if word == "ai"{
+            title.push_str(&word.to_uppercase());
+            title.push(' ');
+            continue;
+        }
         title.push_str(&word[0..1].to_uppercase());
         title.push_str(&word[1..]);
         title.push(' ');
