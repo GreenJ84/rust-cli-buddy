@@ -25,6 +25,9 @@ rusqlite = "0.25.0"
 time = "0.2"
 
 
+[[bin]]
+name = "ai-assistant"
+path = "ai-assistant/src/main.rs"
 
 [[bin]]
 name = "buddy-manager"
