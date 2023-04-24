@@ -34,6 +34,10 @@ name = "buddy-manager"
 path = "buddy-manager/src/main.rs"
 
 [[bin]]
+name = "buddy-utils"
+path = "buddy-utils/src/lib.rs"
+
+[[bin]]
 name = "calculator"
 path = "calculator/src/main.rs"
 
