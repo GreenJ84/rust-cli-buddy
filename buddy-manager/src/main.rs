@@ -11,14 +11,16 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 
+use buddy_utils::format_name;
+
 const BUDDY_PROGRAMS: [&str; 8] = [
     "ai-assistant",
-    "calculator",
-    "development-timer",
+    "calculator", //done, needs Polish
+    "development-timer", // started
     "file-organizer",
-    "password-manager",
-    "password-generator",
-    "task-manager",
+    "password-manager", // done, needs Polish
+    "password-generator", // done, needs Polish
+    "task-manager", 
     "word analyzer",
 ];
 
@@ -271,19 +273,4 @@ fn main() {
     stdout.flush().unwrap();
 
     return;
-}
-
-fn format_name(program: &str) -> String{
-    let mut title = String::new();
-    for (idx, word) in program.split('-').enumerate(){
-        if word == "ai"{
-            title.push_str(&word.to_uppercase());
-            title.push(' ');
-            continue;
-        }
-        title.push_str(&word[0..1].to_uppercase());
-        title.push_str(&word[1..]);
-        title.push(' ');
-    }
-    title
 }
