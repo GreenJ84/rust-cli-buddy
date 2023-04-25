@@ -20,9 +20,11 @@ members = [
 
 [dependencies]
 buddy-utils = { path = "./buddy-utils" }
-termion = "1.5.6"
+chrono = "0.4"
 rand = "0.8.4"
 rusqlite = "0.25.0"
+serde = { version = "1.0", features = ["derive"] }
+termion = "1.5.6"
 time = "0.2"
 
 
