@@ -232,7 +232,7 @@ fn main() {
                 match key.unwrap(){
                     Key::Esc | Key::Char('q') => {
                         saving = false;
-                        return;
+                        break;
                     },
                     Key::Delete | Key::Backspace => {
                         if input.len() > 0 as usize {
