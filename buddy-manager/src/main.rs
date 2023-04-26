@@ -25,31 +25,7 @@ const BUDDY_PROGRAMS: [&str; 8] = [
 ];
 
 fn main() {
-    if let Ok(conn) = Connection::open("../../passwords_db.db3"){
-        // Check if the table already exists
-        let table_exists: bool = conn
-            .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='passwords'")
-            .unwrap()
-            .query_map([], |row| row.get::<_, String>(0))
-            .unwrap()
-            .next()
-            .is_some();
-        println!("{}", table_exists);
-        if !table_exists {
-            // Create the table if it doesn't exist
-            conn.execute(
-                "CREATE TABLE passwords (
-                    id INTEGER PRIMARY KEY,
-                    site TEXT NOT NULL,
-                    username TEXT NOT NULL,
-                    email TEXT NOT NULL,
-                    password TEXT NOT NULL
-                )",
-                [],
-            ).unwrap();
-        }
-        conn.close().unwrap();
-    }
+    database_establishment();
     let mut stdout = stdout().into_raw_mode().unwrap();
     let mut running = true;
     let mut selected = 0;
@@ -273,4 +249,60 @@ fn main() {
     stdout.flush().unwrap();
 
     return;
+}
+
+fn database_establishment(){
+    if let Ok(conn) = Connection::open("../../passwords_db.db3"){
+        // conn.execute("DROP TABLE passwords", []).unwrap();
+        // Check if the table already exists
+        let passwords_exists: bool = conn
+            .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='passwords'")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(0))
+            .unwrap()
+            .next()
+            .is_some();
+        if !passwords_exists {
+            // Create the table if it doesn't exist
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS passwords (
+                    id INTEGER PRIMARY KEY,
+                    site TEXT NOT NULL,
+                    username TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    password TEXT NOT NULL
+                )",
+                [],
+            ).unwrap();
+        }
+        conn.close().unwrap();
+    }
+    if let Ok(conn) = Connection::open("../../tasks_db.db3"){
+        // conn.execute("DROP TABLE tasks", []).unwrap();
+        // Check if the table already exists
+        let tasks_exists: bool = conn
+            .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='tasks'")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(0))
+            .unwrap()
+            .next()
+            .is_some();
+        if !tasks_exists{
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    due_date TEXT,
+                    priority INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    updated_at TEXT GENERATED ALWAYS AS (datetime('now')),
+                    completed_at TEXT
+                )",
+                []
+            ).unwrap();
+        }
+        conn.close().unwrap();
+    }
 }
