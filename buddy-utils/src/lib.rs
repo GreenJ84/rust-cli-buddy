@@ -4,7 +4,7 @@ pub fn main(){
 
 pub fn format_name(program: &str) -> String{
     let mut title = String::new();
-    for (idx, word) in program.split('-').enumerate(){
+    for (_, word) in program.split('-').enumerate(){
         if word == "ai"{
             title.push_str(&word.to_uppercase());
             title.push(' ');
