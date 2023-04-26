@@ -8,7 +8,7 @@ use termion::cursor;
 use termion::cursor::DetectCursorPos;
 use termion::event::Key;
 use termion::input::TermRead;
-use rusqlite::{Connection};
+use rusqlite::{Connection, params_from_iter};
 
 use buddy_utils::format_name;
 
@@ -242,21 +242,23 @@ fn new_task(conn: &Connection) {
     sleep(Duration::from_millis(1200));
     write!(
         stdout(), 
-        "{}{}", 
+        "{}{}{}{}", 
         clear::All, 
-        cursor::Goto(1,1)
+        cursor::Goto(1,1),
+        cursor::Show,
+        cursor::BlinkingUnderline
     ).unwrap();
     stdout().flush().unwrap();
 
-    let mut title: String;
-    let mut description: String;
-    let mut due_date: Option<DateTime<Local>>;
-    let mut priority: u32;
-    let mut status: String;
+    let mut title: String = String::new();
+    let mut description: String = String::new();
+    let mut due_date: Option<DateTime<Local>> = None;
+    let mut priority: u32 = 5;
+    let mut status: String = String::from("Created");
     let prompt_items: [&str; 5] = [
         "What is the TITLE of this new task?",
         "Please give a short DESCRIPTION of the task",
-        "What is the DUE DATE associated with this task?\n  Please format in mm-dd-yyyy",
+        "What is the DUE DATE associated with this task?\n\r  (Please format in mm-dd-yyyy)",
         "On a scale of 1-5, what is the PRIORITY of this task?",
         "Can you give a current STATUS? (an estimated completion percentage)",
     ];
@@ -268,18 +270,24 @@ fn new_task(conn: &Connection) {
         if idx == 2{
             write!(
                 stdout(),
-                "Is there a DUE DATE associated with this task?",
+                "{}Is there a DUE DATE associated with this task? y/n\n\r {}> {}",
+                color::Fg(color::Cyan),
+                color::Fg(color::Red),
+                color::Fg(color::Reset)
             ).unwrap();
+            stdout().flush().unwrap();
 
             let mut date_associated = true;
             for key in stdin().keys(){
                 match key.unwrap(){
                     Key::Char('y') => {
+                        write!(stdout(), "\n\r").unwrap();
                         break;
                     },
                     Key::Char('n') => {
                         date_associated = false;
                         due_date = None;
+                        write!(stdout(), "\n\r").unwrap();
                         break;
                     }
                     _ => {}
@@ -293,7 +301,10 @@ fn new_task(conn: &Connection) {
         } else if idx == 4{
             write!(
                 stdout(),
-                "Have you started working on this task yet?",
+                "{}Have you started working on this task yet? y/n \n\r {}> {}",
+                color::Fg(color::Cyan),
+                color::Fg(color::Red),
+                color::Fg(color::Reset),
             ).unwrap();
             stdout().flush().unwrap();
 
@@ -302,10 +313,11 @@ fn new_task(conn: &Connection) {
                 match key.unwrap(){
                     Key::Char('y') => {
                         started = true;
+                        write!(stdout(), "\n\r").unwrap();
                         break;
                     },
                     Key::Char('n') => {
-                        status = String::from("Created");
+                        write!(stdout(), "\n\r").unwrap();
                         break;
                     },
                     _ => {}
@@ -316,13 +328,11 @@ fn new_task(conn: &Connection) {
 
         write!(
             stdout(),
-            "{}{}\n\r{}> {}{}{}",
+            "{}{}\n\r{}> {}",
             color::Fg(color::Cyan),
             field,
             color::Fg(color::Red),
             color::Fg(color::Reset),
-            cursor::Show,
-            cursor::BlinkingUnderline,
         ).unwrap();
         stdout().flush().unwrap();
 
@@ -346,10 +356,10 @@ fn new_task(conn: &Connection) {
                 Key::Char('\n') => {
                     match idx {
                         0 => {
-                            title = input;
+                            title = input.clone();
                         },
                         1 => {
-                            description = input;
+                            description = input.clone();
                         },
                         2 => {
                             if let Ok(valid) = validate_date_input(&input){
@@ -357,7 +367,7 @@ fn new_task(conn: &Connection) {
                                 let time = NaiveTime::from_hms_opt(0,0,0).unwrap();
                                 let datetime = NaiveDateTime::new(date, time);
                                 due_date = Some(Local.from_local_datetime(&datetime).unwrap());
-                            } else{
+                            } else {
                                 write!(
                                     stdout(),
                                     "\r{}{}Invalid Due Date value{}",
@@ -406,7 +416,7 @@ fn new_task(conn: &Connection) {
                             if let Ok(valid) = input.parse::<u32>(){
                                 match valid{
                                     0 => {
-                                        status = String::from("Created");
+                                        break;
                                     },
                                     1..=35 => {
                                         status = String::from("Starting");
@@ -420,9 +430,28 @@ fn new_task(conn: &Connection) {
                                     100 => {
                                         status = String::from("Completed");
                                     }
-                                    _ => {}
+                                    _ => {
+                                        write!(
+                                            stdout(),
+                                            "\r{}{}Invalid completion percentage value{}",
+                                            clear::CurrentLine,
+                                            color::Fg(color::Red),
+                                            color::Fg(color::Reset),
+                                        ).unwrap();
+                                        stdout().flush().unwrap();
+                                        sleep(Duration::from_millis(1500));
+                                        // Redo current prompt iteration
+                                        write!(
+                                            stdout(),
+                                            "{}{}",
+                                            cursor::Goto(1, stdout().cursor_pos().unwrap().1 - 1),
+                                            clear::AfterCursor,
+                                        ).unwrap();
+                                        stdout().flush().unwrap();
+                                        continue;
+                                    }
                                 }
-                            } else{
+                            } else {
                                 write!(
                                     stdout(),
                                     "\r{}{}Invalid completion percentage value{}",
@@ -444,12 +473,14 @@ fn new_task(conn: &Connection) {
                             }
                         }
                     }
+                    write!(stdout(), "\n\r").unwrap();
                     input.clear();
+                    stdout().flush().unwrap();
                     break;
                 },
                 Key::Char(c) => {
                     input.push(c);
-                    write!(stdout(), "{}", c);
+                    write!(stdout(), "{}", c).unwrap();
                 },
                 _ => {}
             }
@@ -458,34 +489,70 @@ fn new_task(conn: &Connection) {
         idx += 1;
     }
 
-    let task = Task::new(title, description, due_date, priority, status);
+    write!(
+        stdout(),
+        "Title: {},\n\r Description: {},\n\r Due Date: {:?},\n\r Priority: {},\n\r Status: {}",
+        title, description, due_date, priority, status,
+    ).unwrap();
+    stdout().flush().unwrap();
+    sleep(Duration::from_millis(5500));
 
-    if let Err(err) = conn.execute(
-        "INSERT INTO tasks VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)", 
-        [task.id, task.title, task.description, task.due_date, task.priority, task.status, task.created_at, task.updated_at, task.completed_at]
-    ) {
+
+
+    return;
+    let task = Task::new(title, description, due_date, priority, status);
+    let mut query_field = String::from("INSERT INTO tasks (title, description, priority, status");
+    let mut param_fields = String::from(" VALUES (?, ?, ?, ?");
+    let mut parameters: Vec<String> = Vec::from([task.title, task.description, task.priority.to_string(), task.status]);
+
+    if let Some(_) = task.due_date{
+        query_field.push_str(", due_date");
+        param_fields.push_str(", ?");
+        parameters.push(task.due_date.map(|d| d.to_rfc3339()).unwrap());
+    }
+    if let Some(_) = task.completed_at{
+        query_field.push_str(", completed_at");
+        param_fields.push_str(", ?");
+        parameters.push(task.completed_at.map(|d| d.to_rfc3339()).unwrap());
+    }
+
+    query_field.push(')');
+    param_fields.push(')');
+    query_field.push_str(&param_fields);
+    let mut stmt = conn.prepare(&query_field).unwrap(); 
+    if let Err(err) = stmt.execute(params_from_iter(parameters.iter())){
         write!(
             stdout(),
-            "Entry has been added successfully"
+            "There has been an error with adding your task. {}",
+            err,
         ).unwrap();
     } else{
         write!(
             stdout(),
-            "There has been an error with adding your task. Please retry."
+            "Entry has been added successfully",
         ).unwrap();
     }
 }
 
 fn retrieve_task(conn: &Connection) {
-    
+    if let Ok(id) = display_all_tasks(conn){
+
+    } else {
+
+    }
 }
 
 fn update_task(conn: &Connection) {
-    
+    display_all_tasks(conn);
 }
 
 fn delete_task(conn: &Connection) {
-    
+    display_all_tasks(conn);
+}
+
+fn display_all_tasks(conn: &Connection) -> Result<u32, ()>{
+
+    return Ok(0)
 }
 
 fn validate_date_input(date: &String) -> Result<String, ()>{
