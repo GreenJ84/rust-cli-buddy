@@ -531,7 +531,7 @@ fn new_pass(conn: &Connection){
 
     let info: [&str; 4] = [
             "What SITE will the password be for?", 
-            "Is there a USERNAME associated with the password or site?",
+            "What is the USERNAME associated with the password for this site?",
             "Is there am EMAIL associated with the password or site?",
             "What is the PASSWORD?"
         ];
@@ -663,7 +663,7 @@ fn new_pass(conn: &Connection){
         ).unwrap();
     }
     stdout().flush().unwrap();
-    sleep(Duration::from_millis(1500));
+    sleep(Duration::from_secs(1));
 }
 
 
