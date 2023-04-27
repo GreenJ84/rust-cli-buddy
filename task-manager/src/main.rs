@@ -45,6 +45,30 @@ impl Task {
             completed_at: None
         }
     }
+
+    fn from_db(
+        id: u64,
+        title: String,
+        description: String,
+        due_date: Option<DateTime<Local>>,
+        priority: u32,
+        status: String,
+        created_at: DateTime<Local>,
+        updated_at: DateTime<Local>,
+        completed_at: Option<DateTime<Local>>
+    ) -> Self {
+        Self{
+            id,
+            title,
+            description,
+            due_date,
+            priority,
+            status,
+            created_at,
+            updated_at,
+            completed_at
+        }
+    }
 }
 
 
@@ -280,14 +304,17 @@ fn new_task(conn: &Connection) {
             let mut date_associated = true;
             for key in stdin().keys(){
                 match key.unwrap(){
+                    Key::Esc => {
+                        return;
+                    },
                     Key::Char('y') => {
-                        write!(stdout(), "\n\r").unwrap();
+                        write!(stdout(), "y\n\r").unwrap();
                         break;
                     },
                     Key::Char('n') => {
                         date_associated = false;
                         due_date = None;
-                        write!(stdout(), "\n\r").unwrap();
+                        write!(stdout(), "n\n\r").unwrap();
                         break;
                     }
                     _ => {}
@@ -295,7 +322,7 @@ fn new_task(conn: &Connection) {
             }
 
             // skip this prompt if not associated due date
-            if !date_associated{ continue; }
+            if !date_associated{ idx += 1; continue; }
 
         // Status precheck
         } else if idx == 4{
@@ -311,6 +338,9 @@ fn new_task(conn: &Connection) {
             let mut started = false;
             for key in stdin().keys(){
                 match key.unwrap(){
+                    Key::Esc => {
+                        return;
+                    },
                     Key::Char('y') => {
                         started = true;
                         write!(stdout(), "\n\r").unwrap();
@@ -323,7 +353,7 @@ fn new_task(conn: &Connection) {
                     _ => {}
                 }
             }
-            if !started { continue; }
+            if !started { idx += 1; continue; }
         }
 
         write!(
@@ -489,17 +519,6 @@ fn new_task(conn: &Connection) {
         idx += 1;
     }
 
-    write!(
-        stdout(),
-        "Title: {},\n\r Description: {},\n\r Due Date: {:?},\n\r Priority: {},\n\r Status: {}",
-        title, description, due_date, priority, status,
-    ).unwrap();
-    stdout().flush().unwrap();
-    sleep(Duration::from_millis(5500));
-
-
-
-    return;
     let task = Task::new(title, description, due_date, priority, status);
     let mut query_field = String::from("INSERT INTO tasks (title, description, priority, status");
     let mut param_fields = String::from(" VALUES (?, ?, ?, ?");
@@ -535,24 +554,134 @@ fn new_task(conn: &Connection) {
 }
 
 fn retrieve_task(conn: &Connection) {
-    if let Ok(id) = display_all_tasks(conn){
+    if let Ok(id) = display_all_tasks(conn, "retrieve"){
 
-    } else {
-
-    }
+    } else { return; }
 }
 
 fn update_task(conn: &Connection) {
-    display_all_tasks(conn);
+    if let Ok(id) = display_all_tasks(conn, "update"){
+
+    } else { return; }
 }
+
+
+
 
 fn delete_task(conn: &Connection) {
-    display_all_tasks(conn);
+    if let Ok(id) = display_all_tasks(conn, "delete"){
+
+    } else { return; }
+
 }
 
-fn display_all_tasks(conn: &Connection) -> Result<u32, ()>{
+fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
+    // Prepare display retrieval
+    let mut stmt = conn.prepare("SELECT id, title FROM tasks ORDER BY completed_at asc").unwrap();
+    // Excecute query, map data, and collect
+    let rows = stmt.query_map([], |row| {
+        Ok((row.get::<_, i32>(0).unwrap(), row.get::<_, String>(1).unwrap()))
+    }).unwrap();
+    let items: Vec<_> = rows.map(|r| r.unwrap()).collect();
 
-    return Ok(0)
+    write!(
+        stdout(),
+        "{}{}{}{}Please choose which entry you would like to {}.{}\n\r",
+        cursor::Hide,
+        clear::All,
+        cursor::Goto(1, 1),
+        color::Fg(color::Cyan),
+        action,
+        color::Fg(color::Reset)
+    ).unwrap();
+    stdout().flush().unwrap();
+
+    let mut selected: u32 = 0;
+    for (idx, entry) in items.iter().enumerate(){
+        if idx == (selected as usize) {
+            write!(
+                stdout(),
+                "{}  {}> {}) {}{}",
+                cursor::Goto(1, idx as u16 + 2),
+                color::Fg(color::Red),
+                entry.0,
+                entry.1.to_uppercase(),
+                color::Fg(color::Reset)
+            ).unwrap();
+        } else{
+            write!(
+                stdout(),
+                "{}    {}) {}{}",
+                cursor::Goto(1, idx as u16 + 2),
+                color::Fg(color::Reset),
+                entry.0,
+                entry.1,
+            ).unwrap();
+        }
+    }
+    stdout().flush().unwrap();
+
+    for key in stdin().keys(){
+        match key.unwrap(){
+            Key::Up => {
+                if selected > 0 {
+                    write!(
+                        stdout(),
+                        "{}{}{}    {}) {}",
+                        cursor::Goto(1, selected as u16 + 2),
+                        clear::CurrentLine,
+                        color::Fg(color::Reset),
+                        &items[selected as usize].0,
+                        &items[selected as usize].1,
+                    ).unwrap();
+                    selected -= 1;
+                    write!(
+                        stdout(),
+                        "{}{}{}  > {}) {}{}",
+                        cursor::Goto(1, selected as u16),
+                        clear::CurrentLine,
+                        color::Fg(color::Red),
+                        &items[selected as usize].0,
+                        &items[selected as usize].1,
+                        color::Fg(color::Reset),
+                    ).unwrap();
+                    stdout().flush().unwrap();
+                }
+            },
+            Key::Down => {
+                if (selected as usize) < items.len() {
+                    write!(
+                        stdout(),
+                        "{}{}{}    {}) {}",
+                        cursor::Goto(1, selected as u16 + 2),
+                        clear::CurrentLine,
+                        color::Fg(color::Reset),
+                        &items[selected as usize].0,
+                        &items[selected as usize].1,
+                    ).unwrap();
+                    selected += 1;
+                    write!(
+                        stdout(),
+                        "{}{}{}  > {}) {}{}",
+                        cursor::Goto(1, selected as u16),
+                        clear::CurrentLine,
+                        color::Fg(color::Red),
+                        &items[selected as usize].0,
+                        &items[selected as usize].1,
+                        color::Fg(color::Reset),
+                    ).unwrap();
+                    stdout().flush().unwrap();
+                }
+            },
+            Key::Esc | Key::Char('q') => {
+                return Err(())
+            },
+            Key::Char('\n') => {
+                return Ok(items[selected as usize].0 as u32);
+            },
+            _ => {}
+        }
+    }
 }
 
 fn validate_date_input(date: &String) -> Result<String, ()>{
