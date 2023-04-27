@@ -21,8 +21,8 @@ struct Task {
     due_date: Option<DateTime<Local>>,
     priority: u32,
     status: String,
-    created_at: Option<DateTime<Local>>,
-    updated_at: Option<DateTime<Local>>,
+    created_at: DateTime<Local>,
+    updated_at: DateTime<Local>,
     completed_at: Option<DateTime<Local>>
 }
 
@@ -34,6 +34,7 @@ impl Task {
         priority: u32,
         status: String,
     ) -> Self {
+        let curr_time = Local::now();
         Self{
             id: None,
             title,
@@ -41,8 +42,8 @@ impl Task {
             due_date,
             priority,
             status,
-            created_at: None,
-            updated_at: None,
+            created_at: curr_time,
+            updated_at: curr_time,
             completed_at: None
         }
     }
@@ -65,21 +66,19 @@ impl Task {
             due_date,
             priority,
             status,
-            created_at: Some(created_at),
-            updated_at: Some(updated_at),
+            created_at: created_at,
+            updated_at: updated_at,
             completed_at
         }
     }
 }
 
 fn convert_datetime(value: String) -> Result<DateTime<Local>, ()>{
-    if let Some(parsed_date) = DateTime::parse_from_str(&value, "%Y-%m-%d %H:%M:%S%.f %:z").ok(){
-        write!(stdout(), "Good").unwrap();
+    if let Ok(parsed_date) = DateTime::parse_from_rfc3339(&value){
         stdout().flush().unwrap();
         let datetime = parsed_date.with_timezone(&Local);
         Ok(datetime)
     } else {
-        write!(stdout(), "Broke").unwrap();
         stdout().flush().unwrap();
         Err(())
     }
@@ -537,20 +536,25 @@ fn new_task(conn: &Connection) {
         if valid_input{ idx += 1; }
     }
 
-    let task = Task::new(title, description, due_date, priority, status);
-    let mut query_field = String::from("INSERT INTO tasks (title, description, priority, status");
-    let mut param_fields = String::from(" VALUES (?, ?, ?, ?");
-    let mut parameters: Vec<String> = Vec::from([task.title, task.description, task.priority.to_string(), task.status]);
+    let mut task = Task::new(title, description, due_date, priority, status);
+    if task.status == String::from("Completed"){
+        task.completed_at = Some(Local::now());
+    }
+
+
+    let mut query_field = String::from("INSERT INTO tasks (title, description, priority, status, created_at, updated_at");
+    let mut param_fields = String::from(" VALUES (?, ?, ?, ?, ?, ?");
+    let mut parameters: Vec<String> = Vec::from([task.title, task.description, task.priority.to_string(), task.status, task.created_at.to_rfc3339(), task.updated_at.to_rfc3339()]);
 
     if let Some(_) = task.due_date{
         query_field.push_str(", due_date");
         param_fields.push_str(", ?");
-        parameters.push(task.due_date.map(|d| d.to_rfc3339()).unwrap());
+        parameters.push(task.due_date.unwrap().to_rfc3339());
     }
     if let Some(_) = task.completed_at{
         query_field.push_str(", completed_at");
         param_fields.push_str(", ?");
-        parameters.push(task.completed_at.map(|d| d.to_rfc3339()).unwrap());
+        parameters.push(task.completed_at.unwrap().to_rfc3339());
     }
 
     query_field.push(')');
@@ -579,7 +583,9 @@ fn retrieve_task(conn: &Connection) {
         let mut row = stmt.query(&[&id]).unwrap();
         write!(
             stdout(),
-            "{}Here is what I have found: \n\r",
+            "{}{}{}Here is what I have found: \n\r",
+            clear::All,
+            cursor::Goto(1,1),
             color::Fg(color::Green),
         ).unwrap();
 
@@ -587,44 +593,21 @@ fn retrieve_task(conn: &Connection) {
             let id: u64 = entry.get(0).unwrap();
             let title: String = entry.get(1).unwrap();
             let description: String = entry.get(2).unwrap();
-            let due_date: Option<DateTime<Local>> = if entry.get::<usize, Option<String>>(3).unwrap().is_none(){
+            let due_date: Option<DateTime<Local>> = if entry.get::<usize, Option<String>>(8).unwrap().is_none(){
                 None
-            } else { 
-                Some(convert_datetime(entry.get::<usize, Option<String>>(3).unwrap().unwrap()).unwrap())
+            } else{
+                Some(convert_datetime(entry.get::<usize, Option<String>>(8).unwrap().unwrap()).unwrap())
             };
             let priority: u32 = entry.get(4).unwrap();
             let status: String = entry.get(5).unwrap();
-            let created_at: String = entry.get(6).unwrap();
-            let updated_at: String = entry.get(7).unwrap();
-            // let created_at: DateTime<Local> = convert_datetime(entry.get(6).unwrap()).unwrap();
-            // let updated_at: DateTime<Local> = convert_datetime(entry.get(7).unwrap()).unwrap();
+            let created_at: DateTime<Local> = convert_datetime(entry.get(6).unwrap()).unwrap();
+            let updated_at: DateTime<Local> = convert_datetime(entry.get(7).unwrap()).unwrap();
             let completed_at: Option<DateTime<Local>> = if entry.get::<usize, Option<String>>(8).unwrap().is_none(){
                 None
             } else{
                 Some(convert_datetime(entry.get::<usize, Option<String>>(8).unwrap().unwrap()).unwrap())
             };
-            // let task = Task::from_db(
-            //     id,
-            //     title,
-            //     description,
-            //     due_date,
-            //     priority,
-            //     status,
-            //     created_at,
-            //     updated_at,
-            //     completed_at,
-            // );
-            write!(
-                stdout(),
-                "Id: {}\n\r
-                Title: {}\n\r
-                Description: {}\n\r
-                Due Date: {:?}\n\r
-                Priority: {}\n\r
-                Status: {}\n\r
-                Created At: {:?}\n\r
-                Updated At: {:?}\n\r
-                Completed At: {:?}\n\r",
+            let task = Task::from_db(
                 id,
                 title,
                 description,
@@ -633,7 +616,20 @@ fn retrieve_task(conn: &Connection) {
                 status,
                 created_at,
                 updated_at,
-                completed_at
+                completed_at,
+            );
+            write!(
+                stdout(),
+                "\tId: {}\n\r\tTitle: {}\n\r\tDescription: {}\n\r\tDue Date: {}\n\r\tPriority: {}\n\r\tStatus: {}\n\r\tCreated At: {}\n\r\tUpdated At: {}\n\r\tCompleted At: {}\n\n\r",
+                task.id.map(|d| d.to_string()).unwrap_or_else(|| "None".to_string()),
+                task.title,
+                task.description,
+                task.due_date.map(|d| d.to_string()).unwrap_or_else(|| "None".to_string()),
+                task.priority,
+                task.status,
+                task.created_at.to_string(),
+                task.updated_at.to_string(),
+                task.completed_at.map(|d| d.to_string()).unwrap_or_else(|| "None".to_string())
             ).unwrap();
         } else{
             write!(
@@ -678,7 +674,7 @@ fn delete_task(conn: &Connection) {
     if let Ok(id) = display_all_tasks(conn, "delete"){
         write!(
             stdout(),
-            "",
+            "{}{}",
             clear::All,
             cursor::Goto(1,1),
         ).unwrap();
@@ -714,6 +710,22 @@ fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
         Ok((row.get::<_, i32>(0).unwrap(), row.get::<_, String>(1).unwrap()))
     }).unwrap();
     let items: Vec<_> = rows.map(|r| r.unwrap()).collect();
+
+    if items.len() == 0 {
+        write!(
+            stdout(),
+            "{}{}{}{}There are not task entries to {}.{}\n\r",
+            cursor::Hide,
+            clear::All,
+            cursor::Goto(1, 1),
+            color::Fg(color::Red),
+            action,
+            color::Fg(color::Reset)
+        ).unwrap();
+        stdout().flush().unwrap();
+        sleep(Duration::from_millis(2000));
+        return Err(());
+    }
 
     write!(
         stdout(),
@@ -808,6 +820,7 @@ fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
                 return Err(());
             },
             Key::Char('\n') => {
+                write!(stdout(), "\n\r").unwrap();
                 return Ok(items[selected as usize].0 as u32);
             },
             _ => {}
