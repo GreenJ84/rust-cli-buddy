@@ -676,7 +676,32 @@ fn update_task(conn: &Connection) {
 
 fn delete_task(conn: &Connection) {
     if let Ok(id) = display_all_tasks(conn, "delete"){
-
+        write!(
+            stdout(),
+            "",
+            clear::All,
+            cursor::Goto(1,1),
+        ).unwrap();
+        if let Err(err) = conn.execute("DELETE FROM tasks WHERE id = ?", &[&id]){
+            write!(
+                stdout(),
+                "{}An error occured while deleting the task with id {}: {:?}{}",
+                color::Fg(color::Red),
+                id,
+                err,
+                color::Fg(color::Reset),
+            ).unwrap();
+        } else{
+            write!(
+                stdout(),
+                "{}Successfuly deleted task with id {}{}",
+                color::Fg(color::Green),
+                id,
+                color::Fg(color::Reset),
+            ).unwrap();
+        }
+        stdout().flush().unwrap();
+        sleep(Duration::from_millis(2500));
     } else { return; }
 
 }
