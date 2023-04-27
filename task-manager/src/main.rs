@@ -4,6 +4,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use termion::clear;
 use termion::color;
+use termion::style;
 use termion::cursor;
 use termion::cursor::DetectCursorPos;
 use termion::event::Key;
@@ -20,8 +21,8 @@ struct Task {
     due_date: Option<DateTime<Local>>,
     priority: u32,
     status: String,
-    created_at: Option<DateTime<Local>>, // SQL set
-    updated_at: Option<DateTime<Local>>, // SQL set
+    created_at: Option<DateTime<Local>>,
+    updated_at: Option<DateTime<Local>>,
     completed_at: Option<DateTime<Local>>
 }
 
@@ -58,19 +59,31 @@ impl Task {
         completed_at: Option<DateTime<Local>>
     ) -> Self {
         Self{
-            id,
+            id: Some(id),
             title,
             description,
             due_date,
             priority,
             status,
-            created_at,
-            updated_at,
+            created_at: Some(created_at),
+            updated_at: Some(updated_at),
             completed_at
         }
     }
 }
 
+fn convert_datetime(value: String) -> Result<DateTime<Local>, ()>{
+    if let Some(parsed_date) = DateTime::parse_from_str(&value, "%Y-%m-%d %H:%M:%S%.f %:z").ok(){
+        write!(stdout(), "Good").unwrap();
+        stdout().flush().unwrap();
+        let datetime = parsed_date.with_timezone(&Local);
+        Ok(datetime)
+    } else {
+        write!(stdout(), "Broke").unwrap();
+        stdout().flush().unwrap();
+        Err(())
+    }
+}
 
 // Add, manage, delete tasks. task timelines, deadlines, and updates
 fn main() {
@@ -367,6 +380,7 @@ fn new_task(conn: &Connection) {
         stdout().flush().unwrap();
 
         let mut input = String::new();
+        let mut valid_input = true;
         for key in stdin().keys(){
             match key.unwrap(){
                 Key::Esc => {
@@ -415,7 +429,8 @@ fn new_task(conn: &Connection) {
                                     clear::AfterCursor,
                                 ).unwrap();
                                 stdout().flush().unwrap();
-                                continue;
+                                valid_input = false;
+                                break;
                             }
                         },
                         3 => {
@@ -439,7 +454,8 @@ fn new_task(conn: &Connection) {
                                     clear::AfterCursor,
                                 ).unwrap();
                                 stdout().flush().unwrap();
-                                continue;
+                                valid_input = false;
+                                break;
                             }
                         },
                         _ => {
@@ -478,7 +494,8 @@ fn new_task(conn: &Connection) {
                                             clear::AfterCursor,
                                         ).unwrap();
                                         stdout().flush().unwrap();
-                                        continue;
+                                        valid_input = false;
+                                        break;
                                     }
                                 }
                             } else {
@@ -499,7 +516,8 @@ fn new_task(conn: &Connection) {
                                     clear::AfterCursor,
                                 ).unwrap();
                                 stdout().flush().unwrap();
-                                continue;
+                                valid_input = false;
+                                break;
                             }
                         }
                     }
@@ -516,7 +534,7 @@ fn new_task(conn: &Connection) {
             }
             stdout().flush().unwrap();
         }
-        idx += 1;
+        if valid_input{ idx += 1; }
     }
 
     let task = Task::new(title, description, due_date, priority, status);
@@ -551,11 +569,13 @@ fn new_task(conn: &Connection) {
             "Entry has been added successfully",
         ).unwrap();
     }
+    stdout().flush().unwrap();
+    sleep(Duration::from_millis(4000));
 }
 
 fn retrieve_task(conn: &Connection) {
     if let Ok(id) = display_all_tasks(conn, "retrieve"){
-
+        
     } else { return; }
 }
 
@@ -674,7 +694,7 @@ fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
                 }
             },
             Key::Esc | Key::Char('q') => {
-                return Err(())
+                return Err(());
             },
             Key::Char('\n') => {
                 return Ok(items[selected as usize].0 as u32);
@@ -682,6 +702,7 @@ fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
             _ => {}
         }
     }
+    Err(())
 }
 
 fn validate_date_input(date: &String) -> Result<String, ()>{
