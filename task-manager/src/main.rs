@@ -575,7 +575,93 @@ fn new_task(conn: &Connection) {
 
 fn retrieve_task(conn: &Connection) {
     if let Ok(id) = display_all_tasks(conn, "retrieve"){
-        
+        let mut stmt = conn.prepare("SELECT * FROM tasks WHERE id = ?").unwrap();
+        let mut row = stmt.query(&[&id]).unwrap();
+        write!(
+            stdout(),
+            "{}Here is what I have found: \n\r",
+            color::Fg(color::Green),
+        ).unwrap();
+
+        if let Some(entry) = row.next().unwrap(){
+            let id: u64 = entry.get(0).unwrap();
+            let title: String = entry.get(1).unwrap();
+            let description: String = entry.get(2).unwrap();
+            let due_date: Option<DateTime<Local>> = if entry.get::<usize, Option<String>>(3).unwrap().is_none(){
+                None
+            } else { 
+                Some(convert_datetime(entry.get::<usize, Option<String>>(3).unwrap().unwrap()).unwrap())
+            };
+            let priority: u32 = entry.get(4).unwrap();
+            let status: String = entry.get(5).unwrap();
+            let created_at: String = entry.get(6).unwrap();
+            let updated_at: String = entry.get(7).unwrap();
+            // let created_at: DateTime<Local> = convert_datetime(entry.get(6).unwrap()).unwrap();
+            // let updated_at: DateTime<Local> = convert_datetime(entry.get(7).unwrap()).unwrap();
+            let completed_at: Option<DateTime<Local>> = if entry.get::<usize, Option<String>>(8).unwrap().is_none(){
+                None
+            } else{
+                Some(convert_datetime(entry.get::<usize, Option<String>>(8).unwrap().unwrap()).unwrap())
+            };
+            // let task = Task::from_db(
+            //     id,
+            //     title,
+            //     description,
+            //     due_date,
+            //     priority,
+            //     status,
+            //     created_at,
+            //     updated_at,
+            //     completed_at,
+            // );
+            write!(
+                stdout(),
+                "Id: {}\n\r
+                Title: {}\n\r
+                Description: {}\n\r
+                Due Date: {:?}\n\r
+                Priority: {}\n\r
+                Status: {}\n\r
+                Created At: {:?}\n\r
+                Updated At: {:?}\n\r
+                Completed At: {:?}\n\r",
+                id,
+                title,
+                description,
+                due_date,
+                priority,
+                status,
+                created_at,
+                updated_at,
+                completed_at
+            ).unwrap();
+        } else{
+            write!(
+                stdout(),
+                "{}There seems to be no results related to the Id: {}{}{}{}{}{}\n\r",
+                color::Fg(color::Red),
+                color::Fg(color::Magenta),
+                style::Bold,
+                style::Underline,
+                id,
+                style::Reset,
+                color::Fg(color::Reset)
+            ).unwrap();
+        }
+
+        write!(
+            stdout(),
+            "Please hit enter to continue."
+        ).unwrap();
+        stdout().flush().unwrap();
+        for key in stdin().keys(){
+            match key.unwrap(){
+                Key::Char('\n') | Key::Esc | Key::Char('q') => {
+                    return;
+                }
+                _ => {}
+            }
+        }
     } else { return; }
 }
 
