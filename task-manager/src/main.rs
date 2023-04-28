@@ -715,7 +715,7 @@ fn retrieve_task(conn: &Connection) {
                     cursor::Goto(1, idx as u16 + 2),
                     color::Fg(color::Cyan),
                     TASK_FIELDS[idx],
-                    cursor::Goto(15, idx as u16 + 2),
+                    cursor::Goto(17, idx as u16 + 2),
                     color::Fg(color::Green),
                     field,
                     color::Fg(color::Reset)
@@ -738,7 +738,9 @@ fn retrieve_task(conn: &Connection) {
 
         write!(
             stdout(),
-            "Please hit enter to continue."
+            "\n\r{}Please hit enter to continue.{}",
+            color::Fg(color::Green),
+            color::Fg(color::Reset)
         ).unwrap();
         stdout().flush().unwrap();
         for key in stdin().keys(){
@@ -847,20 +849,30 @@ fn update_task(conn: &Connection) {
                             input.remove(index as usize);
                             write!(
                                 stdout(),
-                                "{}{}{}{}",
-                                cursor::Goto(17, spot.1),
-                                clear::AfterCursor,
+                                "{}{}{}{}: {}{}> {}{}{}{}",
+                                cursor::Goto(1, spot.1),
+                                clear::CurrentLine,
+                                color::Fg(color::Cyan),
+                                TASK_FIELDS[current],
+                                cursor::Goto(15, spot.1),
+                                color::Fg(color::Red),
+                                color::Fg(color::Yellow),
                                 input,
-                                cursor::Goto(index, spot.1),
+                                color::Fg(color::Reset),
+                                cursor::Goto(spot.0 - 1, spot.1),
                             ).unwrap();
                         }
                     },
                     Key::Up => {
                         write!(
                             stdout(),
-                            "{}{}{}",
-                            color::Fg(color::Reset),
+                            "{}{}{}{}: {}{}{}",
+                            cursor::Goto(1, current as u16 + 1),
+                            clear::CurrentLine,
+                            color::Fg(color::Cyan),
+                            TASK_FIELDS[current],
                             cursor::Goto(15, current as u16 + 1),
+                            color::Fg(color::Reset),
                             task_items[current],
                         ).unwrap();
                         match current {
@@ -874,20 +886,29 @@ fn update_task(conn: &Connection) {
                         }
                         write!(
                             stdout(),
-                            "{}{}> {}{}",
+                            "{}{}{}{}: {}{}> {}{}{}",
+                            cursor::Goto(1, current as u16 + 1),
+                            clear::CurrentLine,
+                            color::Fg(color::Cyan),
+                            TASK_FIELDS[current],
                             cursor::Goto(15, current as u16 + 1),
                             color::Fg(color::Red),
                             color::Fg(color::Yellow),
                             task_items[current],
+                            cursor::Goto(17 + task_items[current].len() as u16, current as u16 + 1),
                         ).unwrap();
                         input = task_items[current].clone();
                     },
                     Key::Down => {
                         write!(
                             stdout(),
-                            "{}{}{}",
-                            color::Fg(color::Reset),
+                            "{}{}{}{}: {}{}{}",
+                            cursor::Goto(1, current as u16 + 1),
+                            clear::CurrentLine,
+                            color::Fg(color::Cyan),
+                            TASK_FIELDS[current],
                             cursor::Goto(15, current as u16 + 1),
+                            color::Fg(color::Reset),
                             task_items[current],
                         ).unwrap();
                         match current {
@@ -901,11 +922,16 @@ fn update_task(conn: &Connection) {
                         }
                         write!(
                             stdout(),
-                            "{}{}> {}{}",
+                            "{}{}{}{}: {}{}> {}{}{}",
+                            cursor::Goto(1, current as u16 + 1),
+                            clear::CurrentLine,
+                            color::Fg(color::Cyan),
+                            TASK_FIELDS[current],
                             cursor::Goto(15, current as u16 + 1),
                             color::Fg(color::Red),
                             color::Fg(color::Yellow),
                             task_items[current],
+                            cursor::Goto(17 + task_items[current].len() as u16, current as u16 + 1),
                         ).unwrap();
                         input = task_items[current].clone();
                     },
@@ -929,28 +955,36 @@ fn update_task(conn: &Connection) {
                                     let time = NaiveTime::from_hms_opt(0,0,0).unwrap();
                                     let datetime = NaiveDateTime::new(date, time);
                                     task.due_date = Some(Local.from_local_datetime(&datetime).unwrap());
+                                    input = task.due_date.unwrap().to_rfc3339();
+                                } else if input == String::from("None") {
+                                    task.completed_at = None;
                                 } else {
                                     input = task_items[current].clone();
                                     write!(
                                         stdout(),
-                                        "\r{}{}{}{}Invalid Due Date value{}",
+                                        "\r{}{}{}{}Invalid Due Date value: {}Must be a valid date in mm-dd-yyyy format or None{}",
                                         cursor::Hide,
-                                        cursor::Goto(15, current as u16 + 1),
-                                        clear::AfterCursor,
+                                        cursor::Goto(1, current as u16 + 1),
+                                        clear::CurrentLine,
                                         color::Fg(color::Red),
+                                        color::Fg(color::Yellow),
                                         color::Fg(color::Reset),
                                     ).unwrap();
                                     stdout().flush().unwrap();
-                                    sleep(Duration::from_millis(1500));
+                                    sleep(Duration::from_millis(2500));
                                     // Redo current prompt iteration
                                     write!(
                                         stdout(),
-                                        "\r{}{}{}> {}{}{}{}",
+                                        "{}{}{}{}: {}{}> {}{}{}{}{}",
+                                        cursor::Goto(1, current as u16 + 1),
+                                        clear::CurrentLine,
+                                        color::Fg(color::Cyan),
+                                        TASK_FIELDS[current],
                                         cursor::Goto(15, current as u16 + 1),
-                                        clear::AfterCursor,
                                         color::Fg(color::Red),
                                         color::Fg(color::Yellow),
                                         task_items[current],
+                                        cursor::Goto(17 + task_items[current].len() as u16, current as u16 + 1),
                                         cursor::Show,
                                         cursor::BlinkingUnderline
                                     ).unwrap();
@@ -968,24 +1002,29 @@ fn update_task(conn: &Connection) {
                                             input = task_items[current].clone();
                                             write!(
                                                 stdout(),
-                                                "\r{}{}{}{}Invalid Priority value{}",
+                                                "\r{}{}{}{}Invalid Priority value: {}Must be a number between 1 and 5{}",
                                                 cursor::Hide,
-                                                cursor::Goto(15, current as u16 + 1),
-                                                clear::AfterCursor,
+                                                cursor::Goto(1, current as u16 + 1),
+                                                clear::CurrentLine,
                                                 color::Fg(color::Red),
+                                                color::Fg(color::Yellow),
                                                 color::Fg(color::Reset),
                                             ).unwrap();
                                             stdout().flush().unwrap();
-                                            sleep(Duration::from_millis(1500));
+                                            sleep(Duration::from_millis(2500));
                                             // Redo current prompt iteration
                                             write!(
                                                 stdout(),
-                                                "\r{}{}{}> {}{}{}{}",
+                                                "{}{}{}{}: {}{}> {}{}{}{}{}",
+                                                cursor::Goto(1, current as u16 + 1),
+                                                clear::CurrentLine,
+                                                color::Fg(color::Cyan),
+                                                TASK_FIELDS[current],
                                                 cursor::Goto(15, current as u16 + 1),
-                                                clear::AfterCursor,
                                                 color::Fg(color::Red),
                                                 color::Fg(color::Yellow),
                                                 task_items[current],
+                                                cursor::Goto(17 + task_items[current].len() as u16, current as u16 + 1),
                                                 cursor::Show,
                                                 cursor::BlinkingUnderline
                                             ).unwrap();
@@ -997,24 +1036,29 @@ fn update_task(conn: &Connection) {
                                     input = task_items[current].clone();
                                     write!(
                                         stdout(),
-                                        "\r{}{}{}{}Invalid Priority value{}",
+                                        "\r{}{}{}{}Invalid Priority value: {}Must be a number between 1 and 5{}",
                                         cursor::Hide,
-                                        cursor::Goto(15, current as u16 + 1),
-                                        clear::AfterCursor,
+                                        cursor::Goto(1, current as u16 + 1),
+                                        clear::CurrentLine,
                                         color::Fg(color::Red),
+                                        color::Fg(color::Yellow),
                                         color::Fg(color::Reset),
                                     ).unwrap();
                                     stdout().flush().unwrap();
-                                    sleep(Duration::from_millis(1500));
+                                    sleep(Duration::from_millis(2500));
                                     // Redo current prompt iteration
                                     write!(
                                         stdout(),
-                                        "\r{}{}{}> {}{}{}{}",
+                                        "{}{}{}{}: {}{}> {}{}{}{}{}",
+                                        cursor::Goto(1, current as u16 + 1),
+                                        clear::CurrentLine,
+                                        color::Fg(color::Cyan),
+                                        TASK_FIELDS[current],
                                         cursor::Goto(15, current as u16 + 1),
-                                        clear::AfterCursor,
                                         color::Fg(color::Red),
                                         color::Fg(color::Yellow),
                                         task_items[current],
+                                        cursor::Goto(17 + task_items[current].len() as u16, current as u16 + 1),
                                         cursor::Show,
                                         cursor::BlinkingUnderline
                                     ).unwrap();
@@ -1029,28 +1073,36 @@ fn update_task(conn: &Connection) {
                                     let time = NaiveTime::from_hms_opt(0,0,0).unwrap();
                                     let datetime = NaiveDateTime::new(date, time);
                                     task.completed_at = Some(Local.from_local_datetime(&datetime).unwrap());
+                                    input = task.due_date.unwrap().to_rfc3339();
+                                } else if input == String::from("None") {
+                                    task.completed_at = None;
                                 } else {
                                     input = task_items[current].clone();
                                     write!(
                                         stdout(),
-                                        "\r{}{}{}{}Invalid Due Date value{}",
+                                        "\r{}{}{}{}Invalid Completion Date value: {}Must be a valid date in mm-dd-yyyy format or None{}",
                                         cursor::Hide,
-                                        cursor::Goto(15, current as u16 + 1),
-                                        clear::AfterCursor,
+                                        cursor::Goto(1, current as u16 + 1),
+                                        clear::CurrentLine,
                                         color::Fg(color::Red),
+                                        color::Fg(color::Yellow),
                                         color::Fg(color::Reset),
                                     ).unwrap();
                                     stdout().flush().unwrap();
-                                    sleep(Duration::from_millis(1500));
+                                    sleep(Duration::from_millis(2500));
                                     // Redo current prompt iteration
                                     write!(
                                         stdout(),
-                                        "\r{}{}{}> {}{}{}{}",
+                                        "{}{}{}{}: {}{}> {}{}{}{}{}",
+                                        cursor::Goto(1, current as u16 + 1),
+                                        clear::CurrentLine,
+                                        color::Fg(color::Cyan),
+                                        TASK_FIELDS[current],
                                         cursor::Goto(15, current as u16 + 1),
-                                        clear::AfterCursor,
                                         color::Fg(color::Red),
                                         color::Fg(color::Yellow),
                                         task_items[current],
+                                        cursor::Goto(17 + task_items[current].len() as u16, current as u16 + 1),
                                         cursor::Show,
                                         cursor::BlinkingUnderline
                                     ).unwrap();
@@ -1060,23 +1112,31 @@ fn update_task(conn: &Connection) {
                             },
                             _ => {}
                         }
-                        task_items[current] = input;
-                        input = task_items[current].clone();
                         write!(
                             stdout(),
-                            "{}{}{}...Updated{}",
+                            "{}{}...Updating{}",
                             cursor::Goto(17 + input.len() as u16, current as u16 + 1),
-                            clear::AfterCursor,
                             color::Fg(color::Green),
                             color::Fg(color::Reset),
                         ).unwrap();
                         stdout().flush().unwrap();
+                        task_items[current] = input;
+                        input = task_items[current].clone();
                         sleep(Duration::from_millis(500));
                         write!(
                             stdout(),
-                            "{}{}",
-                            cursor::Goto(17 + input.len() as u16, current as u16 + 1),
-                            clear::AfterCursor,
+                            "{}{}{}{}: {}{}> {}{}{}{}{}",
+                            cursor::Goto(1, current as u16 + 1),
+                            clear::CurrentLine,
+                            color::Fg(color::Cyan),
+                            TASK_FIELDS[current],
+                            cursor::Goto(15, current as u16 + 1),
+                            color::Fg(color::Red),
+                            color::Fg(color::Yellow),
+                            task_items[current],
+                            cursor::Goto(17 + task_items[current].len() as u16, current as u16 + 1),
+                            cursor::Show,
+                            cursor::BlinkingUnderline
                         ).unwrap();
                     },
                     Key::Char('\n') => {
@@ -1089,11 +1149,17 @@ fn update_task(conn: &Connection) {
                             input.insert(index as usize, c);
                             write!(
                                 stdout(),
-                                "{}{}{}{}",
-                                cursor::Goto(17, spot.1),
-                                clear::AfterCursor,
+                                "{}{}{}{}: {}{}> {}{}{}{}",
+                                cursor::Goto(1, spot.1),
+                                clear::CurrentLine,
+                                color::Fg(color::Cyan),
+                                TASK_FIELDS[current],
+                                cursor::Goto(15, spot.1),
+                                color::Fg(color::Red),
+                                color::Fg(color::Yellow),
                                 input,
-                                cursor::Goto(index + 1, spot.1),
+                                color::Fg(color::Reset),
+                                cursor::Goto(spot.0 + 1, spot.1)
                             ).unwrap();
                         }
                     }
@@ -1276,6 +1342,10 @@ fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
         }
     }
     Err(())
+}
+
+fn format_datetime(dt: DateTime<Local>) -> String {
+    dt.format("%A, %B %e, %Y %l:%M %p").to_string()
 }
 
 fn validate_date_input(date: &String) -> Result<String, ()>{
