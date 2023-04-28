@@ -95,12 +95,12 @@ impl IntoIterator for Task{
             self.id.map(|d| d.to_string()).unwrap_or_else(|| "None".to_string()),
             self.title,
             self.description,
-            self.due_date.map(|d| d.to_rfc3339()).unwrap_or_else(|| "None".to_string()),
+            self.due_date.map(|d| format_datetime(d)).unwrap_or_else(|| "None".to_string()),
             self.priority.to_string(),
             self.status,
-            self.created_at.to_rfc3339(),
-            self.updated_at.to_rfc3339(),
-            self.completed_at.map(|d| d.to_rfc3339()).unwrap_or_else(|| "None".to_string())
+            format_datetime(self.created_at),
+            format_datetime(self.updated_at),
+            self.completed_at.map(|d| format_datetime(d)).unwrap_or_else(|| "None".to_string())
         ].into_iter()
     }
 }
@@ -945,7 +945,9 @@ fn update_task(conn: &Connection) {
                             write!(stdout(), "{}", cursor::Right(1)).unwrap();
                         }
                     },
+
                     Key::Char('\t') => {
+                        let old_input = input.clone(); 
                         match current {
                             1 => { task.title = input.to_string(); },
                             2 => { task.description = input.to_string(); },
@@ -955,7 +957,7 @@ fn update_task(conn: &Connection) {
                                     let time = NaiveTime::from_hms_opt(0,0,0).unwrap();
                                     let datetime = NaiveDateTime::new(date, time);
                                     task.due_date = Some(Local.from_local_datetime(&datetime).unwrap());
-                                    input = task.due_date.unwrap().to_rfc3339();
+                                    input = format_datetime(task.due_date.unwrap());
                                 } else if input == String::from("None") {
                                     task.completed_at = None;
                                 } else {
@@ -1066,14 +1068,118 @@ fn update_task(conn: &Connection) {
                                     continue;
                                 }
                             },
-                            5 => { task.status = input.to_string(); },
+                            5 => { 
+                                if let Ok(valid) = input.parse::<u32>(){
+                                    match valid {
+                                        1..=35 => {
+                                            task.status = String::from("Starting");
+                                            input = String::from("Starting");
+                                            task.completed_at = None;
+                                        },
+                                        36..=70 => {
+                                            task.status = String::from("Working");
+                                            input = String::from("Working");
+                                            task.completed_at = None;
+                                        },
+                                        71..=99 => {
+                                            task.status = String::from("Finishing");
+                                            input = String::from("Finishing");
+                                            task.completed_at = None;
+                                        },
+                                        100 => {
+                                            task.status = String::from("Completed");
+                                            input = String::from("Completed");
+                                            task.completed_at = Some(Local::now());
+                                        }
+                                        _ => {
+                                            input = task_items[current].clone();
+                                            write!(
+                                                stdout(),
+                                                "\r{}{}{}{}Invalid Status value: {}Must be a percentage between 1 and 100{}",
+                                                cursor::Hide,
+                                                cursor::Goto(1, current as u16 + 1),
+                                                clear::CurrentLine,
+                                                color::Fg(color::Red),
+                                                color::Fg(color::Yellow),
+                                                color::Fg(color::Reset),
+                                            ).unwrap();
+                                            stdout().flush().unwrap();
+                                            sleep(Duration::from_millis(2500));
+                                            // Redo current prompt iteration
+                                            write!(
+                                                stdout(),
+                                                "{}{}{}{}: {}{}> {}{}{}{}{}",
+                                                cursor::Goto(1, current as u16 + 1),
+                                                clear::CurrentLine,
+                                                color::Fg(color::Cyan),
+                                                TASK_FIELDS[current],
+                                                cursor::Goto(15, current as u16 + 1),
+                                                color::Fg(color::Red),
+                                                color::Fg(color::Yellow),
+                                                task_items[current],
+                                                cursor::Goto(17 + task_items[current].len() as u16, current as u16 + 1),
+                                                cursor::Show,
+                                                cursor::BlinkingUnderline
+                                            ).unwrap();
+                                            stdout().flush().unwrap();
+                                            continue;
+                                        }
+                                    }
+                                    write!(
+                                        stdout(),
+                                        "{}{}{}{}: {}{}{}{}",
+                                        cursor::Goto(1, task_items.len() as u16),
+                                        clear::CurrentLine,
+                                        color::Fg(color::Cyan),
+                                        TASK_FIELDS[8],
+                                        cursor::Goto(15, task_items.len() as u16),
+                                        color::Fg(color::Reset),
+                                        if let Some(comp) = task.completed_at {
+                                            format_datetime(comp)
+                                        } else { "None".to_string() },
+                                        cursor::Goto(17 + old_input.len() as u16, current as u16 + 1)
+                                    ).unwrap();
+                                } else {
+                                    input = task_items[current].clone();
+                                    write!(
+                                        stdout(),
+                                        "\r{}{}{}{}Invalid Status value: {}Must be a percentage between 1 and 100{}",
+                                        cursor::Hide,
+                                        cursor::Goto(1, current as u16 + 1),
+                                        clear::CurrentLine,
+                                        color::Fg(color::Red),
+                                        color::Fg(color::Yellow),
+                                        color::Fg(color::Reset),
+                                    ).unwrap();
+                                    stdout().flush().unwrap();
+                                    sleep(Duration::from_millis(2500));
+                                    // Redo current prompt iteration
+                                    write!(
+                                        stdout(),
+                                        "{}{}{}{}: {}{}> {}{}{}{}{}",
+                                        cursor::Goto(1, current as u16 + 1),
+                                        clear::CurrentLine,
+                                        color::Fg(color::Cyan),
+                                        TASK_FIELDS[current],
+                                        cursor::Goto(15, current as u16 + 1),
+                                        color::Fg(color::Red),
+                                        color::Fg(color::Yellow),
+                                        task_items[current],
+                                        cursor::Goto(17 + task_items[current].len() as u16, current as u16 + 1),
+                                        cursor::Show,
+                                        cursor::BlinkingUnderline
+                                    ).unwrap();
+                                    stdout().flush().unwrap();
+                                    continue;
+                                } 
+                            },
                             8 => { 
                                 if let Ok(valid) = validate_date_input(&input){
                                     let date = NaiveDate::parse_from_str(&valid, "%m-%d-%Y").unwrap();
                                     let time = NaiveTime::from_hms_opt(0,0,0).unwrap();
                                     let datetime = NaiveDateTime::new(date, time);
                                     task.completed_at = Some(Local.from_local_datetime(&datetime).unwrap());
-                                    input = task.due_date.unwrap().to_rfc3339();
+                                    input = format_datetime(task.due_date.unwrap());
                                 } else if input == String::from("None") {
                                     task.completed_at = None;
                                 } else {
@@ -1115,7 +1221,7 @@ fn update_task(conn: &Connection) {
                         write!(
                             stdout(),
                             "{}{}...Updating{}",
-                            cursor::Goto(17 + input.len() as u16, current as u16 + 1),
+                            cursor::Goto(17 + old_input.len() as u16, current as u16 + 1),
                             color::Fg(color::Green),
                             color::Fg(color::Reset),
                         ).unwrap();
@@ -1140,6 +1246,7 @@ fn update_task(conn: &Connection) {
                         ).unwrap();
                     },
                     Key::Char('\n') => {
+                        task.updated_at = Local::now();
                         break;
                     },
                     Key::Char(c) => {
@@ -1167,6 +1274,42 @@ fn update_task(conn: &Connection) {
                 }
                 stdout().flush().unwrap();
             }
+            let mut query = String::from("UPDATE tasks SET title = ?, description = ?, priority = ?, status = ?, updated_at = ?");
+            let mut parameters: Vec<String> = Vec::from([task.title, task.description, task.priority.to_string(), task.status, task.updated_at.to_rfc3339()]);
+
+            if let Some(_) = task.due_date{
+                query.push_str(", due_date = ?");
+                parameters.push(task.due_date.unwrap().to_rfc3339());
+            }
+            if let Some(_) = task.completed_at{
+                query.push_str(", completed_at = ?");
+                parameters.push(task.completed_at.unwrap().to_rfc3339());
+            }
+            query.push_str("WHERE id = ?;");
+            parameters.push(task.id.unwrap().to_string());
+            if let Err(err) = conn.execute(
+                &query, params_from_iter(parameters.iter())){
+                write!(
+                    stdout(),
+                    "{}{}{}There has been an error with updating your task. Error: {}{}",
+                    clear::All,
+                    cursor::Goto(1,1),
+                    color::Fg(color::Red),
+                    err,
+                    color::Fg(color::Reset),
+                ).unwrap();
+            } else{
+                write!(
+                    stdout(),
+                    "{}{}{}Entry has been updated successfully!{}",
+                    clear::All,
+                    cursor::Goto(1,1),
+                    color::Fg(color::Green),
+                    color::Fg(color::Reset),
+                ).unwrap();
+            }
+            stdout().flush().unwrap();
+            sleep(Duration::from_millis(2500));
         } else{
             write!(
                 stdout(),
@@ -1182,9 +1325,6 @@ fn update_task(conn: &Connection) {
         }
     } else { return; }
 }
-
-
-
 
 fn delete_task(conn: &Connection) {
     if let Ok(id) = display_all_tasks(conn, "delete"){
