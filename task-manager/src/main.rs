@@ -15,7 +15,7 @@ use rusqlite::{Connection, params_from_iter};
 
 use buddy_utils::format_name;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Task {
     id: Option<u64>,
     title: String,
@@ -27,6 +27,18 @@ struct Task {
     updated_at: DateTime<Local>,
     completed_at: Option<DateTime<Local>>
 }
+
+const TASK_FIELDS: [&str; 9] = [
+    "id",
+    "title",
+    "description",
+    "due_date",
+    "priority",
+    "status",
+    "created_at",
+    "updated_at",
+    "completed_at"
+];
 
 impl Task {
     fn new(
@@ -72,6 +84,24 @@ impl Task {
             updated_at: updated_at,
             completed_at
         }
+    }
+}
+
+impl IntoIterator for Task{
+    type Item = String;
+    type IntoIter = IntoIter<String>;
+    fn into_iter(self) -> Self::IntoIter{
+        vec![
+            self.id.map(|d| d.to_string()).unwrap_or_else(|| "None".to_string()),
+            self.title,
+            self.description,
+            self.due_date.map(|d| d.to_rfc3339()).unwrap_or_else(|| "None".to_string()),
+            self.priority.to_string(),
+            self.status,
+            self.created_at.to_rfc3339(),
+            self.updated_at.to_rfc3339(),
+            self.completed_at.map(|d| d.to_rfc3339()).unwrap_or_else(|| "None".to_string())
+        ].into_iter()
     }
 }
 
@@ -677,19 +707,21 @@ fn retrieve_task(conn: &Connection) {
                 updated_at,
                 completed_at,
             );
-            write!(
-                stdout(),
-                "\tId: {}\n\r\tTitle: {}\n\r\tDescription: {}\n\r\tDue Date: {}\n\r\tPriority: {}\n\r\tStatus: {}\n\r\tCreated At: {}\n\r\tUpdated At: {}\n\r\tCompleted At: {}\n\n\r",
-                task.id.map(|d| d.to_string()).unwrap_or_else(|| "None".to_string()),
-                task.title,
-                task.description,
-                task.due_date.map(|d| d.to_rfc3339()).unwrap_or_else(|| "None".to_string()),
-                task.priority,
-                task.status,
-                task.created_at.to_string(),
-                task.updated_at.to_string(),
-                task.completed_at.map(|d| d.to_rfc3339()).unwrap_or_else(|| "None".to_string())
-            ).unwrap();
+
+            for (idx, field) in task.into_iter().enumerate(){
+                write!(
+                    stdout(),
+                    "{}{}  {}: {}{}{}{}",
+                    cursor::Goto(1, idx as u16 + 2),
+                    color::Fg(color::Cyan),
+                    TASK_FIELDS[idx],
+                    cursor::Goto(15, idx as u16 + 2),
+                    color::Fg(color::Green),
+                    field,
+                    color::Fg(color::Reset)
+                ).unwrap();
+                stdout().flush().unwrap();
+            }
         } else{
             write!(
                 stdout(),
@@ -700,7 +732,7 @@ fn retrieve_task(conn: &Connection) {
                 style::Underline,
                 id,
                 style::Reset,
-                color::Fg(color::Reset)
+                color::Fg(color::Reset),
             ).unwrap();
         }
 
@@ -722,7 +754,366 @@ fn retrieve_task(conn: &Connection) {
 
 fn update_task(conn: &Connection) {
     if let Ok(id) = display_all_tasks(conn, "update"){
+        let mut stmt = conn.prepare("SELECT * FROM tasks WHERE id = ?").unwrap();
+        let mut row = stmt.query(&[&id]).unwrap();
+        if let Some(entry) = row.next().unwrap(){
+            let id: u64 = entry.get(0).unwrap();
+            let title: String = entry.get(1).unwrap();
+            let description: String = entry.get(2).unwrap();
+            let due_date: Option<DateTime<Local>> = if entry.get::<usize, Option<String>>(3).unwrap().is_none(){
+                None
+            } else{
+                Some(convert_datetime(entry.get::<usize, Option<String>>(3).unwrap().unwrap()).unwrap())
+            };
 
+            let priority: u32 = entry.get(4).unwrap();
+            let status: String = entry.get(5).unwrap();
+            let created_at: DateTime<Local> = convert_datetime(entry.get(6).unwrap()).unwrap();
+            let updated_at: DateTime<Local> = convert_datetime(entry.get(7).unwrap()).unwrap();
+            let completed_at: Option<DateTime<Local>> = if entry.get::<usize, Option<String>>(8).unwrap().is_none(){
+                None
+            } else{
+                Some(convert_datetime(entry.get::<usize, Option<String>>(8).unwrap().unwrap()).unwrap())
+            };
+            let mut task = Task::from_db(
+                id,
+                title,
+                description,
+                due_date,
+                priority,
+                status,
+                created_at,
+                updated_at,
+                completed_at,
+            );
+
+            write!(
+                stdout(),
+                "{}{}{}{}",
+                clear::All,
+                cursor::Goto(1,1),
+                cursor::Show,
+                cursor::BlinkingUnderline
+            ).unwrap();
+
+            let mut current = 1;
+            for (idx, field) in task.clone().into_iter().enumerate(){
+                if idx == current {
+                    write!(
+                        stdout(),
+                        "{}{}{}: {}{}> {}{}{}",
+                        cursor::Goto(1, idx as u16 + 1),
+                        color::Fg(color::Cyan),
+                        TASK_FIELDS[idx],
+                        cursor::Goto(15, idx as u16 + 1),
+                        color::Fg(color::Red),
+                        color::Fg(color::Yellow),
+                        field,
+                        color::Fg(color::Reset)
+                    ).unwrap();
+                } else {
+                    write!(
+                        stdout(),
+                        "{}{}{}: {}{}{}",
+                        cursor::Goto(1, idx as u16 + 1),
+                        color::Fg(color::Cyan),
+                        TASK_FIELDS[idx],
+                        color::Fg(color::Reset),
+                        cursor::Goto(15, idx as u16 + 1),
+                        field,
+                    ).unwrap();
+                }
+                stdout().flush().unwrap();
+            }
+            let mut task_items: Vec<String> = task.clone().into_iter().collect();
+            write!(
+                stdout(),
+                "\n\n\r{}Use tab to submit an entry change\n\rEsc to quit / enter to proceed{}",
+                color::Fg(color::Yellow),
+                cursor::Goto(17 + task_items[current].len() as u16, current as u16 + 1)
+            ).unwrap();
+            stdout().flush().unwrap();
+
+            let mut input = task_items[current].clone();
+            for key in stdin().keys(){
+                match key.unwrap(){
+                    Key::Esc => {
+                        return;
+                    },
+                    Key::Delete | Key::Backspace => {
+                        let spot = stdout().cursor_pos().unwrap();
+                        if spot.0 > 17 && spot.0 <= 17 + input.len() as u16 {
+                            let index = spot.0 - 17 - 1;
+                            input.remove(index as usize);
+                            write!(
+                                stdout(),
+                                "{}{}{}{}",
+                                cursor::Goto(17, spot.1),
+                                clear::AfterCursor,
+                                input,
+                                cursor::Goto(index, spot.1),
+                            ).unwrap();
+                        }
+                    },
+                    Key::Up => {
+                        write!(
+                            stdout(),
+                            "{}{}{}",
+                            color::Fg(color::Reset),
+                            cursor::Goto(15, current as u16 + 1),
+                            task_items[current],
+                        ).unwrap();
+                        match current {
+                            2 | 3 | 4 | 5 => {
+                                current -= 1;
+                            },
+                            8 => {
+                                current = 5;
+                            },
+                            _ => {}
+                        }
+                        write!(
+                            stdout(),
+                            "{}{}> {}{}",
+                            cursor::Goto(15, current as u16 + 1),
+                            color::Fg(color::Red),
+                            color::Fg(color::Yellow),
+                            task_items[current],
+                        ).unwrap();
+                        input = task_items[current].clone();
+                    },
+                    Key::Down => {
+                        write!(
+                            stdout(),
+                            "{}{}{}",
+                            color::Fg(color::Reset),
+                            cursor::Goto(15, current as u16 + 1),
+                            task_items[current],
+                        ).unwrap();
+                        match current {
+                            1 | 2 | 3| 4 => {
+                                current += 1;
+                            },
+                            5 => {
+                                current = 8;
+                            },
+                            _ => {}
+                        }
+                        write!(
+                            stdout(),
+                            "{}{}> {}{}",
+                            cursor::Goto(15, current as u16 + 1),
+                            color::Fg(color::Red),
+                            color::Fg(color::Yellow),
+                            task_items[current],
+                        ).unwrap();
+                        input = task_items[current].clone();
+                    },
+                    Key::Left => {
+                        if stdout().cursor_pos().unwrap().0 > 17 {
+                            write!(stdout(), "{}", cursor::Left(1)).unwrap();
+                        }
+                    },
+                    Key::Right => {
+                        if stdout().cursor_pos().unwrap().0 < 17 + input.len() as u16 {
+                            write!(stdout(), "{}", cursor::Right(1)).unwrap();
+                        }
+                    },
+                    Key::Char('\t') => {
+                        match current {
+                            1 => { task.title = input.to_string(); },
+                            2 => { task.description = input.to_string(); },
+                            3 => { 
+                                if let Ok(valid) = validate_date_input(&input){
+                                    let date = NaiveDate::parse_from_str(&valid, "%m-%d-%Y").unwrap();
+                                    let time = NaiveTime::from_hms_opt(0,0,0).unwrap();
+                                    let datetime = NaiveDateTime::new(date, time);
+                                    task.due_date = Some(Local.from_local_datetime(&datetime).unwrap());
+                                } else {
+                                    input = task_items[current].clone();
+                                    write!(
+                                        stdout(),
+                                        "\r{}{}{}{}Invalid Due Date value{}",
+                                        cursor::Hide,
+                                        cursor::Goto(15, current as u16 + 1),
+                                        clear::AfterCursor,
+                                        color::Fg(color::Red),
+                                        color::Fg(color::Reset),
+                                    ).unwrap();
+                                    stdout().flush().unwrap();
+                                    sleep(Duration::from_millis(1500));
+                                    // Redo current prompt iteration
+                                    write!(
+                                        stdout(),
+                                        "\r{}{}{}> {}{}{}{}",
+                                        cursor::Goto(15, current as u16 + 1),
+                                        clear::AfterCursor,
+                                        color::Fg(color::Red),
+                                        color::Fg(color::Yellow),
+                                        task_items[current],
+                                        cursor::Show,
+                                        cursor::BlinkingUnderline
+                                    ).unwrap();
+                                    stdout().flush().unwrap();
+                                    continue;
+                                }
+                            },
+                            4 => { 
+                                if let Ok(valid) = input.parse::<u32>(){
+                                    match valid {
+                                        1..=5 => {
+                                            task.priority = valid; 
+                                        },
+                                        _ => {
+                                            input = task_items[current].clone();
+                                            write!(
+                                                stdout(),
+                                                "\r{}{}{}{}Invalid Priority value{}",
+                                                cursor::Hide,
+                                                cursor::Goto(15, current as u16 + 1),
+                                                clear::AfterCursor,
+                                                color::Fg(color::Red),
+                                                color::Fg(color::Reset),
+                                            ).unwrap();
+                                            stdout().flush().unwrap();
+                                            sleep(Duration::from_millis(1500));
+                                            // Redo current prompt iteration
+                                            write!(
+                                                stdout(),
+                                                "\r{}{}{}> {}{}{}{}",
+                                                cursor::Goto(15, current as u16 + 1),
+                                                clear::AfterCursor,
+                                                color::Fg(color::Red),
+                                                color::Fg(color::Yellow),
+                                                task_items[current],
+                                                cursor::Show,
+                                                cursor::BlinkingUnderline
+                                            ).unwrap();
+                                            stdout().flush().unwrap();
+                                            continue;
+                                        }
+                                    }
+                                } else {
+                                    input = task_items[current].clone();
+                                    write!(
+                                        stdout(),
+                                        "\r{}{}{}{}Invalid Priority value{}",
+                                        cursor::Hide,
+                                        cursor::Goto(15, current as u16 + 1),
+                                        clear::AfterCursor,
+                                        color::Fg(color::Red),
+                                        color::Fg(color::Reset),
+                                    ).unwrap();
+                                    stdout().flush().unwrap();
+                                    sleep(Duration::from_millis(1500));
+                                    // Redo current prompt iteration
+                                    write!(
+                                        stdout(),
+                                        "\r{}{}{}> {}{}{}{}",
+                                        cursor::Goto(15, current as u16 + 1),
+                                        clear::AfterCursor,
+                                        color::Fg(color::Red),
+                                        color::Fg(color::Yellow),
+                                        task_items[current],
+                                        cursor::Show,
+                                        cursor::BlinkingUnderline
+                                    ).unwrap();
+                                    stdout().flush().unwrap();
+                                    continue;
+                                }
+                            },
+                            5 => { task.status = input.to_string(); },
+                            8 => { 
+                                if let Ok(valid) = validate_date_input(&input){
+                                    let date = NaiveDate::parse_from_str(&valid, "%m-%d-%Y").unwrap();
+                                    let time = NaiveTime::from_hms_opt(0,0,0).unwrap();
+                                    let datetime = NaiveDateTime::new(date, time);
+                                    task.completed_at = Some(Local.from_local_datetime(&datetime).unwrap());
+                                } else {
+                                    input = task_items[current].clone();
+                                    write!(
+                                        stdout(),
+                                        "\r{}{}{}{}Invalid Due Date value{}",
+                                        cursor::Hide,
+                                        cursor::Goto(15, current as u16 + 1),
+                                        clear::AfterCursor,
+                                        color::Fg(color::Red),
+                                        color::Fg(color::Reset),
+                                    ).unwrap();
+                                    stdout().flush().unwrap();
+                                    sleep(Duration::from_millis(1500));
+                                    // Redo current prompt iteration
+                                    write!(
+                                        stdout(),
+                                        "\r{}{}{}> {}{}{}{}",
+                                        cursor::Goto(15, current as u16 + 1),
+                                        clear::AfterCursor,
+                                        color::Fg(color::Red),
+                                        color::Fg(color::Yellow),
+                                        task_items[current],
+                                        cursor::Show,
+                                        cursor::BlinkingUnderline
+                                    ).unwrap();
+                                    stdout().flush().unwrap();
+                                    continue;
+                                }
+                            },
+                            _ => {}
+                        }
+                        task_items[current] = input;
+                        input = task_items[current].clone();
+                        write!(
+                            stdout(),
+                            "{}{}{}...Updated{}",
+                            cursor::Goto(17 + input.len() as u16, current as u16 + 1),
+                            clear::AfterCursor,
+                            color::Fg(color::Green),
+                            color::Fg(color::Reset),
+                        ).unwrap();
+                        stdout().flush().unwrap();
+                        sleep(Duration::from_millis(500));
+                        write!(
+                            stdout(),
+                            "{}{}",
+                            cursor::Goto(17 + input.len() as u16, current as u16 + 1),
+                            clear::AfterCursor,
+                        ).unwrap();
+                    },
+                    Key::Char('\n') => {
+                        break;
+                    },
+                    Key::Char(c) => {
+                        let spot = stdout().cursor_pos().unwrap();
+                        if spot.0 >= 17 && spot.0 <= 17 + input.len() as u16{
+                            let index = spot.0 - 17;
+                            input.insert(index as usize, c);
+                            write!(
+                                stdout(),
+                                "{}{}{}{}",
+                                cursor::Goto(17, spot.1),
+                                clear::AfterCursor,
+                                input,
+                                cursor::Goto(index + 1, spot.1),
+                            ).unwrap();
+                        }
+                    }
+                    _ => {}
+                }
+                stdout().flush().unwrap();
+            }
+        } else{
+            write!(
+                stdout(),
+                "{}There seems to be no results related to the Id: {}{}{}{}{}{}\n\r",
+                color::Fg(color::Red),
+                color::Fg(color::Magenta),
+                style::Bold,
+                style::Underline,
+                id,
+                style::Reset,
+                color::Fg(color::Reset)
+            ).unwrap();
+        }
     } else { return; }
 }
 
@@ -758,7 +1149,6 @@ fn delete_task(conn: &Connection) {
         stdout().flush().unwrap();
         sleep(Duration::from_millis(2500));
     } else { return; }
-
 }
 
 fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
