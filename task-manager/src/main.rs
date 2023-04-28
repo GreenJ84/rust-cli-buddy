@@ -2,6 +2,7 @@ use chrono::{DateTime, Local, NaiveDate, NaiveTime, NaiveDateTime, TimeZone};
 use std::io::{stdin, stdout, Write};
 use std::thread::sleep;
 use std::time::Duration;
+use std::vec::IntoIter;
 use termion::clear;
 use termion::color;
 use termion::style;
@@ -9,6 +10,7 @@ use termion::cursor;
 use termion::cursor::DetectCursorPos;
 use termion::event::Key;
 use termion::input::TermRead;
+use regex::Regex;
 use rusqlite::{Connection, params_from_iter};
 
 use buddy_utils::format_name;
@@ -101,9 +103,10 @@ fn main() {
     while running{
         write!(
             stdout,
-            "{}{}{}How can I help you {}?{}\n\r",
+            "{}{}{}{}How can I help you {}?{}\n\r",
             clear::All,
             cursor::Goto(1,1),
+            cursor::Hide,
             color::Fg(color::Cyan),
             if first {"today"} else {"next"},
             color::Fg(color::Reset),
@@ -216,10 +219,11 @@ fn main() {
         if !running { break; }
         write!(
             stdout,
-            "{}{}{}Would you like me to help with another task? y/n{}\n\r{}{}",
+            "{}{}{}Would you like me to help with another task? {}y/n{}\n\r{}{}",
             clear::All,
             cursor::Goto(1,1),
             color::Fg(color::Cyan),
+            color::Fg(color::Yellow),
             color::Fg(color::Reset),
             cursor::Show,
             cursor::BlinkingUnderline,
@@ -306,8 +310,9 @@ fn new_task(conn: &Connection) {
         if idx == 2{
             write!(
                 stdout(),
-                "{}Is there a DUE DATE associated with this task? y/n\n\r {}> {}",
+                "{}Is there a DUE DATE associated with this task? {}y/n\n\r {}> {}",
                 color::Fg(color::Cyan),
+                color::Fg(color::Yellow),
                 color::Fg(color::Red),
                 color::Fg(color::Reset)
             ).unwrap();
@@ -340,8 +345,9 @@ fn new_task(conn: &Connection) {
         } else if idx == 4{
             write!(
                 stdout(),
-                "{}Have you started working on this task yet? y/n \n\r {}> {}",
+                "{}Have you started working on this task yet? {}y/n \n\r {}> {}",
                 color::Fg(color::Cyan),
+                color::Fg(color::Yellow),
                 color::Fg(color::Red),
                 color::Fg(color::Reset),
             ).unwrap();
@@ -379,11 +385,20 @@ fn new_task(conn: &Connection) {
         stdout().flush().unwrap();
 
         let mut input = String::new();
-        let mut valid_input = true;
         for key in stdin().keys(){
             match key.unwrap(){
                 Key::Esc => {
                     return;
+                },
+                Key::Left => {
+                    if stdout().cursor_pos().unwrap().0 > 1{
+                        write!(stdout(), "{}", cursor::Left(1)).unwrap();
+                    }
+                },
+                Key::Right => {
+                    if stdout().cursor_pos().unwrap().0 < 60 {
+                        write!(stdout(), "{}", cursor::Right(1)).unwrap();
+                    }
                 },
                 Key::Delete | Key::Backspace => {
                     if input.len() > 0 {
@@ -411,9 +426,11 @@ fn new_task(conn: &Connection) {
                                 let datetime = NaiveDateTime::new(date, time);
                                 due_date = Some(Local.from_local_datetime(&datetime).unwrap());
                             } else {
+                                input.clear();
                                 write!(
                                     stdout(),
-                                    "\r{}{}Invalid Due Date value{}",
+                                    "\r{}{}{}Invalid Due Date value{}",
+                                    cursor::Hide,
                                     clear::CurrentLine,
                                     color::Fg(color::Red),
                                     color::Fg(color::Reset),
@@ -423,22 +440,55 @@ fn new_task(conn: &Connection) {
                                 // Redo current prompt iteration
                                 write!(
                                     stdout(),
-                                    "{}{}",
-                                    cursor::Goto(1, stdout().cursor_pos().unwrap().1 - 1),
-                                    clear::AfterCursor,
+                                    "\r{}{}> {}{}{}",
+                                    clear::CurrentLine,
+                                    color::Fg(color::Red),
+                                    color::Fg(color::Reset),
+                                    cursor::Show,
+                                    cursor::BlinkingUnderline
                                 ).unwrap();
                                 stdout().flush().unwrap();
-                                valid_input = false;
-                                break;
+                                continue;
                             }
                         },
                         3 => {
                             if let Ok(valid) = input.parse::<u32>(){
-                                priority = valid;
+                                match valid {
+                                    1..=5 => {
+                                        priority = valid
+                                    },
+                                    _ => {
+                                        input.clear();
+                                        write!(
+                                            stdout(),
+                                            "\r{}{}{}Invalid priority value{}",
+                                            cursor::Hide,
+                                            clear::CurrentLine,
+                                            color::Fg(color::Red),
+                                            color::Fg(color::Reset),
+                                        ).unwrap();
+                                        stdout().flush().unwrap();
+                                        sleep(Duration::from_millis(1500));
+                                        // Redo current prompt iteration
+                                        write!(
+                                            stdout(),
+                                            "\r{}{}> {}{}{}",
+                                            clear::CurrentLine,
+                                            color::Fg(color::Red),
+                                            color::Fg(color::Reset),
+                                            cursor::Show,
+                                            cursor::BlinkingUnderline
+                                        ).unwrap();
+                                        stdout().flush().unwrap();
+                                        continue;
+                                    }
+                                }
                             } else{
+                                input.clear();
                                 write!(
                                     stdout(),
-                                    "\r{}{}Invalid priority value{}",
+                                    "\r{}{}{}Invalid priority value{}",
+                                    cursor::Hide,
                                     clear::CurrentLine,
                                     color::Fg(color::Red),
                                     color::Fg(color::Reset),
@@ -448,21 +498,21 @@ fn new_task(conn: &Connection) {
                                 // Redo current prompt iteration
                                 write!(
                                     stdout(),
-                                    "{}{}",
-                                    cursor::Goto(1, stdout().cursor_pos().unwrap().1 - 1),
-                                    clear::AfterCursor,
+                                    "\r{}{}> {}{}{}",
+                                    clear::CurrentLine,
+                                    color::Fg(color::Red),
+                                    color::Fg(color::Reset),
+                                    cursor::Show,
+                                    cursor::BlinkingUnderline
                                 ).unwrap();
                                 stdout().flush().unwrap();
-                                valid_input = false;
-                                break;
+                                continue;
                             }
                         },
                         _ => {
                             if let Ok(valid) = input.parse::<u32>(){
                                 match valid{
-                                    0 => {
-                                        break;
-                                    },
+                                    0 => {},
                                     1..=35 => {
                                         status = String::from("Starting");
                                     },
@@ -476,9 +526,11 @@ fn new_task(conn: &Connection) {
                                         status = String::from("Completed");
                                     }
                                     _ => {
+                                        input.clear();
                                         write!(
                                             stdout(),
-                                            "\r{}{}Invalid completion percentage value{}",
+                                            "\r{}{}{}Invalid completion percentage value{}",
+                                            cursor::Hide,
                                             clear::CurrentLine,
                                             color::Fg(color::Red),
                                             color::Fg(color::Reset),
@@ -488,19 +540,23 @@ fn new_task(conn: &Connection) {
                                         // Redo current prompt iteration
                                         write!(
                                             stdout(),
-                                            "{}{}",
-                                            cursor::Goto(1, stdout().cursor_pos().unwrap().1 - 1),
-                                            clear::AfterCursor,
+                                            "\r{}{}> {}{}{}",
+                                            clear::CurrentLine,
+                                            color::Fg(color::Red),
+                                            color::Fg(color::Reset),
+                                            cursor::Show,
+                                            cursor::BlinkingUnderline
                                         ).unwrap();
                                         stdout().flush().unwrap();
-                                        valid_input = false;
-                                        break;
+                                        continue;
                                     }
                                 }
                             } else {
+                                input.clear();
                                 write!(
                                     stdout(),
-                                    "\r{}{}Invalid completion percentage value{}",
+                                    "\r{}{}{}Invalid completion percentage value{}",
+                                    cursor::Hide,
                                     clear::CurrentLine,
                                     color::Fg(color::Red),
                                     color::Fg(color::Reset),
@@ -510,13 +566,15 @@ fn new_task(conn: &Connection) {
                                 // Redo current prompt iteration
                                 write!(
                                     stdout(),
-                                    "{}{}",
-                                    cursor::Goto(1, stdout().cursor_pos().unwrap().1 - 1),
-                                    clear::AfterCursor,
+                                    "\r{}{}> {}{}{}",
+                                    clear::CurrentLine,
+                                    color::Fg(color::Red),
+                                    color::Fg(color::Reset),
+                                    cursor::Show,
+                                    cursor::BlinkingUnderline
                                 ).unwrap();
                                 stdout().flush().unwrap();
-                                valid_input = false;
-                                break;
+                                continue;
                             }
                         }
                     }
@@ -533,7 +591,7 @@ fn new_task(conn: &Connection) {
             }
             stdout().flush().unwrap();
         }
-        if valid_input{ idx += 1; }
+        idx += 1;
     }
 
     let mut task = Task::new(title, description, due_date, priority, status);
@@ -593,11 +651,12 @@ fn retrieve_task(conn: &Connection) {
             let id: u64 = entry.get(0).unwrap();
             let title: String = entry.get(1).unwrap();
             let description: String = entry.get(2).unwrap();
-            let due_date: Option<DateTime<Local>> = if entry.get::<usize, Option<String>>(8).unwrap().is_none(){
+            let due_date: Option<DateTime<Local>> = if entry.get::<usize, Option<String>>(3).unwrap().is_none(){
                 None
             } else{
-                Some(convert_datetime(entry.get::<usize, Option<String>>(8).unwrap().unwrap()).unwrap())
+                Some(convert_datetime(entry.get::<usize, Option<String>>(3).unwrap().unwrap()).unwrap())
             };
+
             let priority: u32 = entry.get(4).unwrap();
             let status: String = entry.get(5).unwrap();
             let created_at: DateTime<Local> = convert_datetime(entry.get(6).unwrap()).unwrap();
@@ -624,12 +683,12 @@ fn retrieve_task(conn: &Connection) {
                 task.id.map(|d| d.to_string()).unwrap_or_else(|| "None".to_string()),
                 task.title,
                 task.description,
-                task.due_date.map(|d| d.to_string()).unwrap_or_else(|| "None".to_string()),
+                task.due_date.map(|d| d.to_rfc3339()).unwrap_or_else(|| "None".to_string()),
                 task.priority,
                 task.status,
                 task.created_at.to_string(),
                 task.updated_at.to_string(),
-                task.completed_at.map(|d| d.to_string()).unwrap_or_else(|| "None".to_string())
+                task.completed_at.map(|d| d.to_rfc3339()).unwrap_or_else(|| "None".to_string())
             ).unwrap();
         } else{
             write!(
@@ -754,7 +813,7 @@ fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
         } else{
             write!(
                 stdout(),
-                "{}    {}) {}{}",
+                "{}{}    {}) {}",
                 cursor::Goto(1, idx as u16 + 2),
                 color::Fg(color::Reset),
                 entry.0,
@@ -781,11 +840,11 @@ fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
                     write!(
                         stdout(),
                         "{}{}{}  > {}) {}{}",
-                        cursor::Goto(1, selected as u16),
+                        cursor::Goto(1, selected as u16 + 2),
                         clear::CurrentLine,
                         color::Fg(color::Red),
                         &items[selected as usize].0,
-                        &items[selected as usize].1,
+                        &items[selected as usize].1.to_uppercase(),
                         color::Fg(color::Reset),
                     ).unwrap();
                     stdout().flush().unwrap();
@@ -800,13 +859,13 @@ fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
                         clear::CurrentLine,
                         color::Fg(color::Reset),
                         &items[selected as usize].0,
-                        &items[selected as usize].1,
+                        &items[selected as usize].1.to_uppercase(),
                     ).unwrap();
                     selected += 1;
                     write!(
                         stdout(),
                         "{}{}{}  > {}) {}{}",
-                        cursor::Goto(1, selected as u16),
+                        cursor::Goto(1, selected as u16 + 2),
                         clear::CurrentLine,
                         color::Fg(color::Red),
                         &items[selected as usize].0,
@@ -830,5 +889,10 @@ fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
 }
 
 fn validate_date_input(date: &String) -> Result<String, ()>{
-    Ok(date.to_string())
+    let date_regex = Regex::new(r"^\d{2}-\d{2}-\d{4}$").unwrap();
+    if date_regex.is_match(date){
+        Ok(date.to_string())
+    } else {
+        Err(())
+    }
 }
