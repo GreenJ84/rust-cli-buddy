@@ -328,9 +328,9 @@ fn new_task(conn: &Connection) {
     let prompt_items: [&str; 5] = [
         "What is the TITLE of this new task?",
         "Please give a short DESCRIPTION of the task",
-        "What is the DUE DATE associated with this task?\n\r  (Please format in mm-dd-yyyy)",
+        "What is the DUE DATE associated with this task?",
         "On a scale of 1-5, what is the PRIORITY of this task?",
-        "Can you give a current STATUS? (an estimated completion percentage)",
+        "Can you give a current STATUS?",
     ];
 
     let mut idx = 0;
@@ -406,9 +406,17 @@ fn new_task(conn: &Connection) {
 
         write!(
             stdout(),
-            "{}{}\n\r{}> {}",
+            "{}{}\n\r{}{}{}> {}",
             color::Fg(color::Cyan),
             field,
+            color::Fg(color::Yellow),
+            if idx == 2 || idx == 4 { 
+                if idx == 2 {
+                    "  Please format in mm-dd-yyyy\n\r"
+                } else {
+                    "  Please give a estimated completion percentage (1-100)\n\r"
+                }
+            } else {""},
             color::Fg(color::Red),
             color::Fg(color::Reset),
         ).unwrap();
