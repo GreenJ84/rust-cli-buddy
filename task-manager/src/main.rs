@@ -8,7 +8,7 @@ use termion::color;
 use termion::style;
 use termion::cursor;
 use termion::cursor::DetectCursorPos;
-use termion::event::Key;
+use termion::event::{Key};
 use termion::input::TermRead;
 use regex::Regex;
 use rusqlite::{Connection, params_from_iter};
@@ -842,6 +842,23 @@ fn update_task(conn: &Connection) {
                     Key::Esc => {
                         return;
                     },
+                    Key::Ctrl('u') | Key::Ctrl('\x7f') => {
+                        let spot = stdout().cursor_pos().unwrap();
+                        input.clear();
+                        write!(
+                            stdout(),
+                            "{}{}{}{}: {}{}> {}{}{}",
+                            cursor::Goto(1, spot.1),
+                            clear::CurrentLine,
+                            color::Fg(color::Cyan),
+                            TASK_FIELDS[current],
+                            cursor::Goto(15, spot.1),
+                            color::Fg(color::Red),
+                            color::Fg(color::Yellow),
+                            input,
+                            color::Fg(color::Reset),
+                        ).unwrap();
+                    },
                     Key::Delete | Key::Backspace => {
                         let spot = stdout().cursor_pos().unwrap();
                         if spot.0 > 17 && spot.0 <= 17 + input.len() as u16 {
@@ -884,6 +901,40 @@ fn update_task(conn: &Connection) {
                             },
                             _ => {}
                         }
+                        if current == 3 || current == 8{
+                            write!(
+                                stdout(),
+                                "{}{}{}Please provide the date in mm-dd-yyyy format or None{}",
+                                cursor::Goto(1, current as u16 + 1),
+                                clear::CurrentLine,
+                                color::Fg(color::Yellow),
+                                color::Fg(color::Reset)
+                            ).unwrap();
+                            stdout().flush().unwrap();
+                            sleep(Duration::from_millis(1800));
+                        } else if current == 4 {
+                            write!(
+                                stdout(),
+                                "{}{}{}Please provide the priority as a number between 1 and 5{}",
+                                cursor::Goto(1, current as u16 + 1),
+                                clear::CurrentLine,
+                                color::Fg(color::Yellow),
+                                color::Fg(color::Reset)
+                            ).unwrap();
+                            stdout().flush().unwrap();
+                            sleep(Duration::from_millis(1800));
+                        } else if current == 5 {
+                            write!(
+                                stdout(),
+                                "{}{}{}Please provide the priority as a number between 1 and 100{}",
+                                cursor::Goto(1, current as u16 + 1),
+                                clear::CurrentLine,
+                                color::Fg(color::Yellow),
+                                color::Fg(color::Reset)
+                            ).unwrap();
+                            stdout().flush().unwrap();
+                            sleep(Duration::from_millis(1800));
+                        }
                         write!(
                             stdout(),
                             "{}{}{}{}: {}{}> {}{}{}",
@@ -919,6 +970,40 @@ fn update_task(conn: &Connection) {
                                 current = 8;
                             },
                             _ => {}
+                        }
+                        if current == 3 || current == 8{
+                            write!(
+                                stdout(),
+                                "{}{}{}Please provide the date in mm-dd-yyyy format or None{}",
+                                cursor::Goto(1, current as u16 + 1),
+                                clear::CurrentLine,
+                                color::Fg(color::Yellow),
+                                color::Fg(color::Reset)
+                            ).unwrap();
+                            stdout().flush().unwrap();
+                            sleep(Duration::from_millis(1800));
+                        } else if current == 4 {
+                            write!(
+                                stdout(),
+                                "{}{}{}Please provide the priority as a number between 1 and 5{}",
+                                cursor::Goto(1, current as u16 + 1),
+                                clear::CurrentLine,
+                                color::Fg(color::Yellow),
+                                color::Fg(color::Reset)
+                            ).unwrap();
+                            stdout().flush().unwrap();
+                            sleep(Duration::from_millis(1800));
+                        } else if current == 5 {
+                            write!(
+                                stdout(),
+                                "{}{}{}Please provide the priority as a number between 1 and 100{}",
+                                cursor::Goto(1, current as u16 + 1),
+                                clear::CurrentLine,
+                                color::Fg(color::Yellow),
+                                color::Fg(color::Reset)
+                            ).unwrap();
+                            stdout().flush().unwrap();
+                            sleep(Duration::from_millis(1800));
                         }
                         write!(
                             stdout(),
@@ -1447,7 +1532,7 @@ fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
                 }
             },
             Key::Down => {
-                if (selected as usize) < items.len() {
+                if (selected as usize) < items.len() - 1 {
                     write!(
                         stdout(),
                         "{}{}{}    {}) {}",
