@@ -1,8 +1,9 @@
+mod task;
+
 use chrono::{DateTime, Local, NaiveDate, NaiveTime, NaiveDateTime, TimeZone};
 use std::io::{stdin, stdout, Write};
 use std::thread::sleep;
 use std::time::Duration;
-use std::vec::IntoIter;
 use termion::{clear, color, style, cursor};
 use termion::cursor::DetectCursorPos;
 use termion::event::{Key};
@@ -11,19 +12,7 @@ use regex::Regex;
 use rusqlite::{Connection, params_from_iter};
 
 use buddy_utils::format_name;
-
-#[derive(Debug, Clone)]
-struct Task {
-    id: Option<u64>,
-    title: String,
-    description: String,
-    due_date: Option<DateTime<Local>>,
-    priority: u32,
-    status: String,
-    created_at: DateTime<Local>,
-    updated_at: DateTime<Local>,
-    completed_at: Option<DateTime<Local>>
-}
+use task::{Task, format_datetime};
 
 const TASK_FIELDS: [&str; 9] = [
     "id",
@@ -37,70 +26,6 @@ const TASK_FIELDS: [&str; 9] = [
     "completed_at"
 ];
 
-impl Task {
-    fn new(
-        title: String,
-        description: String,
-        due_date: Option<DateTime<Local>>,
-        priority: u32,
-        status: String,
-    ) -> Self {
-        let curr_time = Local::now();
-        Self{
-            id: None,
-            title,
-            description,
-            due_date,
-            priority,
-            status,
-            created_at: curr_time,
-            updated_at: curr_time,
-            completed_at: None
-        }
-    }
-
-    fn from_db(
-        id: u64,
-        title: String,
-        description: String,
-        due_date: Option<DateTime<Local>>,
-        priority: u32,
-        status: String,
-        created_at: DateTime<Local>,
-        updated_at: DateTime<Local>,
-        completed_at: Option<DateTime<Local>>
-    ) -> Self {
-        Self{
-            id: Some(id),
-            title,
-            description,
-            due_date,
-            priority,
-            status,
-            created_at: created_at,
-            updated_at: updated_at,
-            completed_at
-        }
-    }
-}
-
-impl IntoIterator for Task{
-    type Item = String;
-    type IntoIter = IntoIter<String>;
-    fn into_iter(self) -> Self::IntoIter{
-        vec![
-            self.id.map(|d| d.to_string()).unwrap_or_else(|| "None".to_string()),
-            self.title,
-            self.description,
-            self.due_date.map(|d| format_datetime(d)).unwrap_or_else(|| "None".to_string()),
-            self.priority.to_string(),
-            self.status,
-            format_datetime(self.created_at),
-            format_datetime(self.updated_at),
-            self.completed_at.map(|d| format_datetime(d)).unwrap_or_else(|| "None".to_string())
-        ].into_iter()
-    }
-}
 
 fn convert_datetime(value: String) -> Result<DateTime<Local>, ()>{
     if let Ok(parsed_date) = DateTime::parse_from_rfc3339(&value){
@@ -1572,10 +1497,6 @@ fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
         }
     }
     Err(())
-}
-
-fn format_datetime(dt: DateTime<Local>) -> String {
-    dt.format("%A, %B %e, %Y %l:%M %p").to_string()
 }
 
 fn validate_date_input(date: &String) -> Result<String, ()>{
