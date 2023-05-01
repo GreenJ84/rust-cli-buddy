@@ -26,18 +26,6 @@ const TASK_FIELDS: [&str; 9] = [
     "completed_at"
 ];
 
-
-fn convert_datetime(value: String) -> Result<DateTime<Local>, ()>{
-    if let Ok(parsed_date) = DateTime::parse_from_rfc3339(&value){
-        stdout().flush().unwrap();
-        let datetime = parsed_date.with_timezone(&Local);
-        Ok(datetime)
-    } else {
-        stdout().flush().unwrap();
-        Err(())
-    }
-}
-
 // Add, manage, delete tasks. task timelines, deadlines, and updates
 fn main() {
     let mut stdout = stdout();
@@ -1343,12 +1331,6 @@ fn update_task(conn: &Connection) {
 
 fn delete_task(conn: &Connection) {
     if let Ok(id) = display_all_tasks(conn, "delete"){
-        write!(
-            stdout(),
-            "{}{}",
-            clear::All,
-            cursor::Goto(1,1),
-        ).unwrap();
         if let Err(err) = conn.execute("DELETE FROM tasks WHERE id = ?", &[&id]){
             write!(
                 stdout(),
@@ -1371,6 +1353,7 @@ fn delete_task(conn: &Connection) {
         sleep(Duration::from_millis(2500));
     } else { return; }
 }
+
 
 fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
     // Prepare display retrieval
@@ -1490,7 +1473,12 @@ fn display_all_tasks(conn: &Connection, action: &str) -> Result<u32, ()>{
                 return Err(());
             },
             Key::Char('\n') => {
-                write!(stdout(), "\n\r").unwrap();
+                write!(
+                    stdout(), 
+                    "{}{}",
+                    clear::All,
+                    cursor::Goto(1,1),
+                ).unwrap();
                 return Ok(items[selected as usize].0 as u32);
             },
             _ => {}
@@ -1504,6 +1492,17 @@ fn validate_date_input(date: &String) -> Result<String, ()>{
     if date_regex.is_match(date){
         Ok(date.to_string())
     } else {
+        Err(())
+    }
+}
+
+fn convert_datetime(value: String) -> Result<DateTime<Local>, ()>{
+    if let Ok(parsed_date) = DateTime::parse_from_rfc3339(&value){
+        stdout().flush().unwrap();
+        let datetime = parsed_date.with_timezone(&Local);
+        Ok(datetime)
+    } else {
+        stdout().flush().unwrap();
         Err(())
     }
 }
