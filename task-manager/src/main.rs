@@ -344,7 +344,7 @@ fn new_task(conn: &Connection) {
                     }
                 },
                 Key::Right => {
-                    if stdout().cursor_pos().unwrap().0 < 60 {
+                    if stdout().cursor_pos().unwrap().0 < input.len() as u16 {
                         write!(stdout(), "{}", cursor::Right(1)).unwrap();
                     }
                 },
