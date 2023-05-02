@@ -21,6 +21,7 @@ members = [
 [dependencies]
 buddy-utils = { path = "./buddy-utils" }
 chrono = "0.4"
+dotenv = "0.16.0"
 rand = "0.8.4"
 regex = "1"
 reqwest = { version = "0.11.5", features = ["blocking", "json"] }
