@@ -204,7 +204,7 @@ fn main() {
             style::Reset
         ).unwrap();
         stdout.flush().unwrap();
-        sleep(Duration::from_millis(1500));
+        sleep(Duration::from_millis(500));
         
         let mut spawn = Command::new("cargo")
             .arg("run")
