@@ -1,5 +1,4 @@
 use rusqlite::{Connection};
-use chrono::{Local};
 use std::io::{stdout, stdin, Write};
 use std::process::{Command, Stdio};
 use std::time::Duration;
@@ -289,10 +288,6 @@ fn database_establishment(){
             .next()
             .is_some();
         if !tasks_exists{
-            fn current_timestamp() -> String {
-                Local::now().format("%Y-%m-%d %H:%M:%S%.f %:z").to_string()
-            }
-
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS tasks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
