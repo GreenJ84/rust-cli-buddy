@@ -78,7 +78,7 @@ async fn main() {
                                     if in_code {
                                         write!(
                                             stdout,
-                                            "{}{}{}{}\n\r",
+                                            "{}{}    {}{}\n\r",
                                             color::Fg(color::LightMagenta),
                                             style::Bold,
                                             line,
@@ -89,7 +89,7 @@ async fn main() {
                                         offset = String::new();
                                         write!(
                                             stdout,
-                                            "{}{}{}{}\n\r",
+                                            "{}    {}{}{}\n\r",
                                             color::Fg(color::LightMagenta),
                                             line,
                                             style::Reset,
