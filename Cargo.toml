@@ -21,7 +21,7 @@ members = [
 [dependencies]
 buddy-utils = { path = "./buddy-utils" }
 chrono = "0.4"
-dotenv = "0.16.0"
+dotenv = "0.15"
 rand = "0.8.4"
 regex = "1"
 reqwest = { version = "0.11.5", features = ["blocking", "json"] }
@@ -29,6 +29,7 @@ rusqlite = "0.25.0"
 serde = { version = "1.0", features = ["derive"] }
 termion = "1.5.6"
 time = "0.2"
+tokio = { version = "1.15.0", features = ["full"] }
 
 
 [[bin]]
