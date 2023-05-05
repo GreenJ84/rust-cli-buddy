@@ -1,6 +1,4 @@
-pub fn main(){
-    
-}
+pub fn main(){}
 
 pub fn format_name(program: &str) -> String{
     let mut title = String::new();
@@ -57,8 +55,11 @@ mod tests {
     }
 }
 
+// "ai-assistant", //done, needs polish
+// "calculator", //done, needs polish
+// "development timer"
 // "file-organizer",
 // "password-manager", // done, needs Polish
 // "password-generator", // done, needs Polish
-// "task-manager", 
+// "task-manager",  // done, needs Polish
 // "word analyzer",
