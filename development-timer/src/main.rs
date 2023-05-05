@@ -96,6 +96,7 @@ fn main() {
                         options[selected as usize],
                         color::Fg(color::Reset),
                     ).unwrap();
+                    stdout.flush().unwrap();
                     break;
                 },
                 Key::Up => {
@@ -169,7 +170,7 @@ fn main() {
     }
     write!(
         stdout,
-        "...{}DEVELOPERS OUT!{}",
+        "...{}DEVELOPER OUT!{}",
         color::Fg(color::Green),
         color::Fg(color::Reset),
     ).unwrap();
