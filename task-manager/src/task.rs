@@ -35,7 +35,6 @@ impl Task {
             completed_at: None
         }
     }
-
     pub fn from_db(
         id: u64,
         title: String,

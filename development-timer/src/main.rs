@@ -1,4 +1,4 @@
-use std::io::{stdin, stdout, Write};
+use std::io::{stdin, Stdin, stdout, Stdout, Write};
 use std::thread::sleep;
 use std::time::Duration;
 use termion::color;
@@ -9,7 +9,7 @@ use termion::input::TermRead;
 
 // stopwatch, work interval, timer, alarms
 fn main() {
-    let mut stdout = stdout();
+    let mut stdout: Stdout = stdout();
     write!(
         stdout,
         "{}{}{}Welcome to the Development Timer!{}",
@@ -21,9 +21,9 @@ fn main() {
     stdout.flush().unwrap();
     sleep(Duration::from_millis(1500));
 
-    let mut running = true;
+    let mut running: bool = true;
     while running {
-        let stdin = stdin();
+        let stdin: Stdin = stdin();
 
         write!(
             stdout,
@@ -74,16 +74,16 @@ fn main() {
                 Key::Char(' ') | Key::Char('\n') => {
                     match selected {
                         0 => {
-
+                            write!(stdout, "{}", "Starting the stopwatch...").unwrap();
                         },
                         1 => {
-
+                            write!(stdout, "{}", "Starting the work intervals...").unwrap();
                         },
                         2 => {
-
+                            write!(stdout, "{}", "Starting the timer...").unwrap();
                         },
                         _ => {
-
+                            write!(stdout, "{}", "Starting the alarm...").unwrap();
                         }
                     }
                     write!(

@@ -9,6 +9,8 @@ edition = "2021"
 buddy-utils = { path = "../buddy-utils" }
 chrono = "0.4"
 regex = "1"
+rusqlite = "0.29"
+termion = "2"
 serde = { version = "1.0", features = ["derive"] }
 
 [[bin]]

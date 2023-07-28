@@ -6,7 +6,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use termion::{clear, color, style, cursor};
 use termion::cursor::DetectCursorPos;
-use termion::event::{Key};
+use termion::event::Key;
 use termion::input::TermRead;
 use regex::Regex;
 use rusqlite::{Connection, params_from_iter};
@@ -28,7 +28,7 @@ const TASK_FIELDS: [&str; 9] = [
 
 // Add, manage, delete tasks. task timelines, deadlines, and updates
 fn main() {
-    let mut stdout = stdout();
+    let mut stdout: std::io::Stdout = stdout();
     write!(
         stdout,
         "{}{}{}Welcome to the Task Manager!{}",
@@ -38,8 +38,8 @@ fn main() {
         color::Fg(color::Reset),
     ).unwrap();
 
-    let mut running = true;
-    let mut first = true;
+    let mut running: bool = true;
+    let mut first: bool = true;
     while running{
         write!(
             stdout,

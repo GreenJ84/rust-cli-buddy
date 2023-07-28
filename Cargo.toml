@@ -8,13 +8,14 @@ default-run = "buddy-manager"
 
 [workspace]
 members = [
+    "ai-assistant",
     "buddy-manager",
     "calculator",
+    "development-timer",
+    "file-organizer",
     "password-manager",
     "password-generator",
-    "file-organizer",
     "task-manager",
-    "development-timer",
     "word-analyzer",
 ]
 

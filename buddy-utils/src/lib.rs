@@ -31,12 +31,3 @@ mod tests {
         assert_eq!(format_name(&"word-analyzer"), String::from("Word analyzer"));
     }
 }
-
-// "ai-assistant", //done, needs polish
-// "calculator", //done, needs polish
-// "development timer"
-// "file-organizer",
-// "password-manager", // done, needs Polish
-// "password-generator", // done, needs Polish
-// "task-manager",  // done, needs Polish
-// "word analyzer",

@@ -6,9 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-termion = "1.5.6"
-chrono = "0.4"
 buddy-utils = { path = "../buddy-utils" }
+chrono = "0.4"
+termion = "2"
+rusqlite = "0.29"
 
 [package.metadata]
 default-run = "buddy-manager"

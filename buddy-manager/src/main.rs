@@ -1,4 +1,3 @@
-use rusqlite::{Connection};
 use std::io::{stdout, stdin, Write};
 use std::process::{Command, Stdio};
 use std::time::Duration;
@@ -10,6 +9,7 @@ use termion::cursor::{Goto, Hide, Show, BlinkingBlock};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
+use rusqlite::Connection;
 
 use buddy_utils::format_name;
 
@@ -238,7 +238,6 @@ fn main() {
     stdout.flush().unwrap();
     sleep(Duration::from_secs(1));
 
-    drop(&mut stdout);
     write!(
         stdout,
         "{}{}{}\r",
@@ -247,7 +246,8 @@ fn main() {
         Show
     ).unwrap();
     stdout.flush().unwrap();
-
+    
+    drop(stdout);
     return;
 }
 

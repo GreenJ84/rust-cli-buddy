@@ -7,7 +7,7 @@ use termion::color;
 use termion::style;
 use termion::cursor;
 use termion::input::TermRead;
-use termion::event::{Key};
+use termion::event::Key;
 
 // Register cli user, add, manage, delete passwords
 fn main() {
