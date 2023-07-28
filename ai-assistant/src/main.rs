@@ -1,42 +1,37 @@
 mod ai_structs;
-
+use ai_structs::{CompletionRequest, CompletionResponse, Message};
+use buddy_utils::{application_entry, application_close};
 
 use dotenv::dotenv;
-use reqwest::Client;
-use reqwest::header::{ACCEPT, CONTENT_TYPE, AUTHORIZATION};
 use std::io::{Write, stdin, stdout};
 use std::thread::sleep;
 use std::time::Duration;
-use termion::{color, cursor, clear, style, terminal_size};
+use reqwest::Client;
+use reqwest::header::{ACCEPT, CONTENT_TYPE, AUTHORIZATION};
+use termion::{color, cursor, clear, style};
 use termion::event::Key;
-use termion::cursor::DetectCursorPos;
 use termion::input::TermRead;
 
-use ai_structs::{CompletionRequest, CompletionResponse, Message};
 
 // Development companion, AI assistant
 #[tokio::main]
 async fn main() {
     dotenv().ok();
     let mut stdout = stdout();
+    application_entry(&stdout, "Welcome to your AI Assistant!");
     write!(
         stdout,
-        "{}{}{}Welcome to your AI Assistant!{}",
+        "{}{}",
         clear::All,
         cursor::Goto(1, 1),
-        color::Fg(color::Green),
-        color::Fg(color::Reset)
     ).unwrap();
     stdout.flush().unwrap();
-    sleep(Duration::from_millis(1500));
 
     let mut running = true;
     while running {
         write!(
             stdout,
-            "{}{}{}How can I be of service?\n\r{} > {}{}{}",
-            clear::All,
-            cursor::Goto(1, 1),
+            "{}How can I be of service?\n\r{} > {}{}{}",
             color::Fg(color::Cyan),
             color::Fg(color::Red),
             color::Fg(color::Reset),
@@ -47,8 +42,6 @@ async fn main() {
 
         let mut input = String::new();
         for key in stdin().keys(){
-            let _position = stdout.cursor_pos().unwrap();
-            let _terminal = terminal_size().unwrap();
             match key.unwrap(){
                 Key::Esc => {
                     running = false;
@@ -66,11 +59,12 @@ async fn main() {
                 Key::Char('\n') => {
                     write!(stdout,"\n\n\r").unwrap();
                     stdout.flush().unwrap();
+
                     let mut offset: String = String::new();
                     match interact_with_chat_ai(&input).await{
                         Ok(response) => {
                             write!(stdout, "{}", color::Fg(color::Green)).unwrap();
-                            stdout.flush().unwrap();
+
                             let mut in_code = false;
                             for line in response.split("\n"){
                                 if line.starts_with("```"){
@@ -78,7 +72,7 @@ async fn main() {
                                     if in_code {
                                         write!(
                                             stdout,
-                                            "{}{}    {}{}\n\r",
+                                            "\t{}{}{}{}\n\r",
                                             color::Fg(color::LightMagenta),
                                             style::Bold,
                                             line,
@@ -89,7 +83,7 @@ async fn main() {
                                         offset = String::new();
                                         write!(
                                             stdout,
-                                            "{}    {}{}{}\n\r",
+                                            "\t{}{}{}{}\n\r",
                                             color::Fg(color::LightMagenta),
                                             line,
                                             style::Reset,
@@ -120,24 +114,6 @@ async fn main() {
                     stdout.flush().unwrap();
                     break;
                 },
-                // Key::Left => {
-                //     if position.1 > 1 && position.0 > 4 {
-                //         write!(
-                //             stdout,
-                //             "{}",
-                //             cursor::Left(1)
-                //         ).unwrap();
-                //     }
-                // },
-                // Key::Right => {
-                //     if stdout.cursor_pos().unwrap().0 - 4 < input.len() as u16 {
-                //         write!(
-                //             stdout, 
-                //             "{}", 
-                //             cursor::Right(1)
-                //         ).unwrap();
-                //     }
-                // },
                 Key::Char(c) => {
                     input.push(c);
                     write!(
@@ -153,7 +129,7 @@ async fn main() {
         if running{
             write!(
                 stdout,
-                "{}Is there more I can help with? y/n\n\r {} > {}",
+                "{}Is there more I can help with? y/n {} > {}",
                 color::Fg(color::Yellow),
                 color::Fg(color::Red),
                 color::Fg(color::Reset),
@@ -167,6 +143,11 @@ async fn main() {
                         break;
                     },
                     Key::Char('y') | Key::Char('\n') => {
+                        write!(
+                            stdout,
+                            "\n\n\r",
+                        ).unwrap();
+                        stdout.flush().unwrap();
                         break;
                     },
                     _ => {
@@ -190,29 +171,7 @@ async fn main() {
         }
     }
 
-    write!(
-        stdout,
-        "{}{}{}{}Closing AI Chat..",
-        clear::All,
-        cursor::Goto(1, 1),
-        color::Fg(color::Red),
-        cursor::Hide,
-    ).unwrap();
-    for _ in 0..5{
-        write!(
-            stdout,
-            "...",
-        ).unwrap();
-        stdout.flush().unwrap();
-        sleep(Duration::from_millis(100));
-    }
-    write!(
-        stdout,
-        "{}Good Bye{}",
-        color::Fg(color::Green),
-        color::Fg(color::Reset),
-    ).unwrap();
-    stdout.flush().unwrap();
+    application_close(&stdout, "Closing AI Assistant");
 }
 
 
