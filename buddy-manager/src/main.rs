@@ -1,17 +1,17 @@
-use std::io::{stdout, stdin, Write};
+use std::io::{stdout, stdin, Write, Stdout};
 use std::process::{Command, Stdio};
 use std::time::Duration;
 use std::thread::sleep;
 use termion::clear;
 use termion::color;
 use termion::style;
-use termion::cursor::{Goto, Hide, Show, BlinkingBlock};
+use termion::cursor::{Goto, Show, BlinkingBlock};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use rusqlite::Connection;
 
-use buddy_utils::format_name;
+use buddy_utils::{format_name, application_entry, application_close};
 
 const BUDDY_PROGRAMS: [&str; 8] = [
     "ai-assistant",
@@ -26,166 +26,55 @@ const BUDDY_PROGRAMS: [&str; 8] = [
 
 fn main() {
     database_establishment();
+    clear_termianl();
     let mut stdout = stdout().into_raw_mode().unwrap();
+    application_entry(&stdout, "Welcome back Buddy!");
+
     let mut running = true;
     let mut selected = 0;
-    
     while running {
         let stdin = stdin();
 
+        // Print Section title to Terminal
         write!(
             stdout, 
-            "{}{}{}{}{}{}Select a program to start: {}", 
+            "{}{}{}{}{}Select a program to start: {}{}{} enter / 'q'uit {}\n", 
             clear::All,
-            Hide,
             Goto(1, 1),
             style::Bold,
             style::Underline,
             color::Fg(color::Green),
             style::Reset,
-        ).unwrap();
-        write!(
-            stdout, 
-            "{}{} enter / 'q'uit {}\n", 
             Goto(4, 2),
             color::Fg(color::Yellow),
             color::Fg(color::Reset)
         ).unwrap();
         stdout.flush().unwrap();
 
-        // Print the list
-        for (i, program) in BUDDY_PROGRAMS.iter().enumerate(){
-            if selected == i {
-                write!(
-                    stdout,
-                    "{}{}> {}{}{}{}",
-                    Goto(1, (i+4) as u16),
-                    color::Fg(color::Red),
-                    style::Bold,
-                    format_name(program).to_uppercase(),
-                    color::Fg(color::Reset),
-                    style::Reset
-                ).unwrap();
-            } else {
-                write!(
-                    stdout,
-                    "{}{}{}",
-                    Goto(1, (i+4) as u16),
-                    color::Fg(color::Reset),
-                    format_name(program),
-                ).unwrap();
-            }
-        }
-        stdout.flush().unwrap();
+        // Print the list to Terminal
+        print_programs(&stdout, selected);
 
         // Handle User Input
         for c in stdin.keys() {
             match c.unwrap(){
                 Key::Up => {
                     if selected > 0{
-                        write!(
-                            stdout,
-                            "{}{}{}{}",
-                            Goto(1, selected as u16 + 4),
-                            clear::CurrentLine,
-                            color::Fg(color::Reset),
-                            format_name(BUDDY_PROGRAMS[selected])
-                        ).unwrap();
                         selected -= 1;
-                        write!(
-                            stdout,
-                            "{}{}{}> {}{}{}{}",
-                            Goto(1, selected as u16 + 4),
-                            clear::CurrentLine,
-                            color::Fg(color::Red),
-                            style::Bold,
-                            format_name(BUDDY_PROGRAMS[selected]).to_uppercase(),
-                            color::Fg(color::Reset),
-
-                            style::Reset
-                        ).unwrap();
+                        print_programs(&stdout, selected);
                     }
                 },
                 Key::Down => {
                     if selected < BUDDY_PROGRAMS.len() - 1{
-                        write!(
-                            stdout,
-                            "{}{}{}{}",
-                            Goto(1, selected as u16 + 4),
-                            clear::CurrentLine,
-                            color::Fg(color::Reset),
-                            format_name(BUDDY_PROGRAMS[selected]),
-                        ).unwrap();
                         selected += 1;
-                        write!(
-                            stdout,
-                            "{}{}{}> {}{}{}{}",
-                            Goto(1, selected as u16 + 4),
-                            clear::CurrentLine,
-                            color::Fg(color::Red),
-                            style::Bold,
-                            format_name(BUDDY_PROGRAMS[selected]).to_uppercase(),
-                            color::Fg(color::Reset),
-                            style::Reset
-                        ).unwrap();
+                        print_programs(&stdout, selected);
                     }
                 },
                 Key::Char('\n') => {
-                    write!(
-                        stdout, 
-                        "{}{}..",
-                        Goto(BUDDY_PROGRAMS[selected].len() as u16 + 3, selected as u16 + 4),
-                        color::Fg(color::Red),
-                    ).unwrap();
-                    stdout.flush().unwrap();
-                    for _i in 0..5{
-                        write!(
-                            stdout, 
-                            "..",
-                        ).unwrap();
-                        stdout.flush().unwrap();
-                        sleep(Duration::from_millis(100));
-                    }
-                    write!(
-                        stdout, 
-                        "..Selected{}",
-                        color::Fg(color::Reset),
-                    ).unwrap();
-                    stdout.flush().unwrap();
-                    sleep(Duration::from_secs(1));
-
-                    write!(
-                        stdout,
-                        "{}{}{}{}You have chosesen: {}{}{}\n\r",
-                        clear::All,
-                        Goto(1, 1),
-                        color::Fg(color::Green),
-                        style::Underline,
-                        format_name(BUDDY_PROGRAMS[selected]).to_uppercase(),
-                        Goto(1, 2),
-                        style::NoUnderline,
-                    ).unwrap();
-                    stdout.flush().unwrap();
-                    sleep(Duration::from_millis(500));
+                    program_selection(&stdout, selected);
                     break;
                 },
                 Key::Char('q') | Key::Esc => {
-                    write!(
-                        stdout,
-                        "{}{}{}Leaving your buddy behind....",
-                        clear::All,
-                        Goto(1,1),
-                        color::Fg(color::Red),
-                    ).unwrap();
-                    stdout.flush().unwrap();
-                    for _i in 0..5{
-                        write!(
-                            stdout, 
-                            "...",
-                        ).unwrap();
-                        stdout.flush().unwrap();
-                        sleep(Duration::from_millis(200));
-                    }
+                    application_close(&stdout, "Leaving your buddy behind...");
                     running = false;
                     break;
                 },
@@ -193,7 +82,6 @@ fn main() {
             }
             stdout.flush().unwrap();
         }
-
         if !running { break; }
 
         write!(
@@ -203,8 +91,9 @@ fn main() {
             style::Reset
         ).unwrap();
         stdout.flush().unwrap();
-        sleep(Duration::from_millis(500));
-        
+        sleep(Duration::from_millis(300));
+
+        clear_termianl();
         let mut spawn = Command::new("cargo")
             .arg("run")
             .arg("--bin")
@@ -216,7 +105,11 @@ fn main() {
             .expect("Failed to spawn application");
 
         let exit_status = spawn.wait().expect(&format!("Failed to wait for {} program.", BUDDY_PROGRAMS[selected]));
-        sleep(Duration::from_secs(3));
+        sleep(Duration::from_millis(500));
+        if !exit_status.success() {
+            eprintln!("Sub Application exited with an error.");
+        }
+
         println!(
             "{}{} Exiting {}. Status: {}",
             clear::All, 
@@ -226,9 +119,10 @@ fn main() {
         sleep(Duration::from_millis(500));
     }
 
+    // Hurt their emotions
     write!(
         stdout,
-        "...Goodbye {}{}{}BUDDY.{}{}",
+        "...{}{}{}BUDDY.{}{}",
         color::Fg(color::Green),
         style::Bold,
         style::Underline,
@@ -238,32 +132,26 @@ fn main() {
     stdout.flush().unwrap();
     sleep(Duration::from_secs(1));
 
+    // Clear and reset all of terminal settings
     write!(
         stdout,
-        "{}{}{}\r",
+        "{}{}{}{}{}\r",
         clear::All,
+        style::Reset,
+        color::Fg(color::Reset),
+        Show,
         BlinkingBlock,
-        Show
     ).unwrap();
     stdout.flush().unwrap();
-    
+
+    // Drop output control
     drop(stdout);
     return;
 }
 
 fn database_establishment(){
-    if let Ok(conn) = Connection::open("../../passwords_db.db3"){
-        // conn.execute("DROP TABLE passwords", []).unwrap();
-        // Check if the table already exists
-        let passwords_exists: bool = conn
-            .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='passwords'")
-            .unwrap()
-            .query_map([], |row| row.get::<_, String>(0))
-            .unwrap()
-            .next()
-            .is_some();
-        if !passwords_exists {
-            // Create the table if it doesn't exist
+    match Connection::open("../../passwords_db.db3"){
+        Ok(conn) => {
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS passwords (
                     id INTEGER PRIMARY KEY,
@@ -274,20 +162,15 @@ fn database_establishment(){
                 )",
                 [],
             ).unwrap();
+            conn.close().unwrap();
         }
-        conn.close().unwrap();
+        Err(e) => {
+            println!("Error connecting to the passwords database: {}", e);
+        }
     }
-    if let Ok(conn) = Connection::open("../../tasks_db.db3"){
-        // conn.execute("DROP TABLE tasks", []).unwrap();
-        // Check if the table already exists
-        let tasks_exists: bool = conn
-            .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='tasks'")
-            .unwrap()
-            .query_map([], |row| row.get::<_, String>(0))
-            .unwrap()
-            .next()
-            .is_some();
-        if !tasks_exists{
+
+    match Connection::open("../../tasks_db.db3"){
+        Ok(conn) => {
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS tasks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -302,7 +185,105 @@ fn database_establishment(){
                 )",
                 []
             ).unwrap();
+            conn.close().unwrap();
+        },
+        Err(err) => {
+            eprintln!("Error connecting to the tasks database: {}", err);
         }
-        conn.close().unwrap();
+    }
+}
+
+
+// Print the program list to Terminal
+fn print_programs(mut stdout: &Stdout, selected: usize){
+    for (i, program) in BUDDY_PROGRAMS.iter().enumerate(){
+        write!(
+            stdout,
+            "{}{}\r",
+            Goto(1, (i+4) as u16),
+            " ".repeat(25),
+        ).unwrap();
+        if selected == i {
+            write!(
+                stdout,
+                "{}> {}{}{}{}",
+                color::Fg(color::Red),
+                style::Bold,
+                format_name(program).to_uppercase(),
+                color::Fg(color::Reset),
+                style::Reset
+            ).unwrap();
+        } else {
+            write!(
+                stdout,
+                "{}{}",
+                color::Fg(color::Reset),
+                format_name(program),
+            ).unwrap();
+        }
+    }
+    stdout.flush().unwrap();
+}
+
+fn program_selection(mut stdout: &Stdout, selected: usize){
+    write!(
+        stdout, 
+        "{}{}..",
+        Goto(BUDDY_PROGRAMS[selected].len() as u16 + 3, selected as u16 + 4),
+        color::Fg(color::Red),
+    ).unwrap();
+    stdout.flush().unwrap();
+
+    for _i in 0..5{
+        write!(
+            stdout, 
+            "..",
+        ).unwrap();
+        stdout.flush().unwrap();
+        sleep(Duration::from_millis(80));
+    }
+
+    write!(
+        stdout, 
+        "..Selected{}",
+        color::Fg(color::Reset),
+    ).unwrap();
+    stdout.flush().unwrap();
+    sleep(Duration::from_millis(400));
+
+    write!(
+        stdout,
+        "{}{}{}{}You have chosesen: {}{}{}\n\r",
+        clear::All,
+        Goto(1, 1),
+        color::Fg(color::Green),
+        style::Underline,
+        format_name(BUDDY_PROGRAMS[selected]).to_uppercase(),
+        Goto(1, 2),
+        style::Reset,
+    ).unwrap();
+    stdout.flush().unwrap();
+    sleep(Duration::from_millis(400));
+}
+
+fn clear_termianl(){
+    // Unix
+    if cfg!(unix) {
+        // Unix-based system (Linux, macOS, etc.)
+        let status = Command::new("clear").status().unwrap();
+        if !status.success() {
+            eprintln!("Failed to clear the terminal.");
+        }
+    } else if cfg!(windows) {
+        // Windows
+        let status = Command::new("cmd")
+            .args(&["/C", "cls"])
+            .status()
+            .unwrap();
+        if !status.success() {
+            eprintln!("Failed to clear the terminal.");
+        }
+    } else {
+        eprintln!("Unsupported operating system to clear.");
     }
 }
