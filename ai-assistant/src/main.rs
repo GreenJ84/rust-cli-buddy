@@ -171,7 +171,7 @@ async fn main() {
         }
     }
 
-    application_close(&stdout, "Closing AI Assistant");
+    application_close(&stdout, "Closing AI Assistant", "Good Bye");
 }
 
 

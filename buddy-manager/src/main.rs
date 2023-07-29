@@ -26,7 +26,7 @@ const BUDDY_PROGRAMS: [&str; 8] = [
 
 fn main() {
     database_establishment();
-    clear_termianl();
+    clear_terminal();
     let mut stdout = stdout().into_raw_mode().unwrap();
     application_entry(&stdout, "Welcome back Buddy!");
 
@@ -74,7 +74,7 @@ fn main() {
                     break;
                 },
                 Key::Char('q') | Key::Esc => {
-                    application_close(&stdout, "Leaving your buddy behind...");
+                    application_close(&stdout, "Leaving your buddy behind...", "WHY!?!?!");
                     running = false;
                     break;
                 },
@@ -93,7 +93,7 @@ fn main() {
         stdout.flush().unwrap();
         sleep(Duration::from_millis(300));
 
-        clear_termianl();
+        clear_terminal();
         let mut spawn = Command::new("cargo")
             .arg("run")
             .arg("--bin")
@@ -118,19 +118,6 @@ fn main() {
             exit_status);
         sleep(Duration::from_millis(500));
     }
-
-    // Hurt their emotions
-    write!(
-        stdout,
-        "...{}{}{}BUDDY.{}{}",
-        color::Fg(color::Green),
-        style::Bold,
-        style::Underline,
-        style::Reset,
-        color::Fg(color::Reset),
-    ).unwrap();
-    stdout.flush().unwrap();
-    sleep(Duration::from_secs(1));
 
     // Clear and reset all of terminal settings
     write!(
@@ -266,7 +253,7 @@ fn program_selection(mut stdout: &Stdout, selected: usize){
     sleep(Duration::from_millis(400));
 }
 
-fn clear_termianl(){
+fn clear_terminal(){
     // Unix
     if cfg!(unix) {
         // Unix-based system (Linux, macOS, etc.)
