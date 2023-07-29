@@ -1,45 +1,35 @@
-use std::io::{stdout, stdin, Write};
+use buddy_utils::{application_close, application_entry};
+
+use std::io::{stdout, stdin, Write, Stdout, Stdin};
 use std::thread::sleep;
 use std::time::Duration;
 use termion::input::TermRead;
 use termion::clear;
 use termion::color;
-use termion::style;
-use termion::cursor::{Goto, Show, Hide, Left, BlinkingUnderline, DetectCursorPos};
+use termion::cursor::{Goto, Left, BlinkingUnderline, DetectCursorPos};
 use termion::event::Key;
 
 fn main() {
-    let mut stdout = stdout();
-    write!(
-        stdout,
-        "{}{}{}Welcome to the {}Calculator!{}{}\n\n\r",
-        clear::All,
-        Goto(1,1),
-        color::Fg(color::Green),
-        style::Bold,
-        Show,
-        style::Reset
-    ).unwrap();
-    stdout.flush().unwrap();
+    let mut stdout: Stdout = stdout();
+    application_entry(&stdout, "Welcome to the Calculator!");
 
     let mut recents_stack: Vec<String> = Vec::new();
     let mut offset: u32 = 0;
     let mut input = String::new();
-    let mut running = true;
+    let mut running: bool = true;
     while running {
-        let stdin = stdin();
         write!(
             stdout,
-            "{}\r{}> {}{}",
+            "\n{}\r{}> {}{}",
             clear::CurrentLine,
             color::Fg(color::Red),
             color::Fg(color::Reset),
             BlinkingUnderline
         ).unwrap();
         stdout.flush().unwrap();
-
+        
+        let stdin: Stdin = stdin();
         for key in stdin.keys() {
-            stdout.flush().unwrap();
             match key.unwrap(){
                 Key::Char('\n') => {
                     if let Ok(result) = eval(&input){
@@ -71,74 +61,34 @@ fn main() {
                     let curr_line = stdout.cursor_pos().unwrap().1;
                     let x = recents_stack.len();
 
-                    if (offset as usize) < recents_stack.len(){
+                    if (offset as usize) < recents_stack.len() {
                         offset += 1;
                         if let Some(item) = recents_stack.get(x.checked_sub((offset).try_into().unwrap()).unwrap_or_default()){
                             input = item.to_owned();
+                        } else {
+                            offset = 0;
+                            input = String::new();
                         }
-                        write!(
-                            stdout,
-                            "{}{}{}{}{}",
-                            Goto(3, curr_line),
-                            clear::AfterCursor,
-                            color::Fg(color::Yellow),
-                            input,
-                            color::Fg(color::Reset)
-                        ).unwrap();
-                        stdout.flush().unwrap();
                     } else if (offset as usize) == recents_stack.len(){
                         offset = 0;
                         input = String::new();
-                        write!(
-                            stdout,
-                            "{}{}{}{}{}",
-                            Goto(3, curr_line),
-                            clear::AfterCursor,
-                            color::Fg(color::Yellow),
-                            input,
-                            color::Fg(color::Reset)
-                        ).unwrap();
-                        stdout.flush().unwrap();
                     }
+                    write_response(&mut stdout, curr_line, &input);
                 },
                 Key::Down => {
                     let curr_line = stdout.cursor_pos().unwrap().1;
                     let x = recents_stack.len();
-                    if offset == 0{
-                        println!("Trying");
-                        if let Some(num) = x.checked_add(1){
-                            offset = num.try_into().unwrap();
-                        }
-                    }
 
-                    if offset > 1{
-                        offset -= 1;
+                    if offset > 1 || offset == 0{
+                        offset = if offset == 0 { x as u32 } else { offset - 1 };
                         if let Some(item) = recents_stack.get(x.checked_sub((offset).try_into().unwrap()).unwrap_or_default()){
                             input = item.to_owned();
                         }
-                        write!(
-                            stdout,
-                            "{}{}{}{}{}",
-                            Goto(3, curr_line),
-                            clear::AfterCursor,
-                            color::Fg(color::Yellow),
-                            input,
-                            color::Fg(color::Reset)
-                        ).unwrap();
-                        stdout.flush().unwrap();
-                    } else if offset == 1{
-                        offset = 0;
+                    } else {
+                        offset -= 1;
                         input = String::new();
-                        write!(
-                            stdout,
-                            "{}{}{}{}",
-                            Goto(3, curr_line),
-                            clear::AfterCursor,
-                            color::Fg(color::Reset),
-                            input
-                        ).unwrap();
-                        stdout.flush().unwrap();
                     }
+                    write_response(&mut stdout, curr_line, &input);
                 },
                 Key::Esc | Key::Char('q') => {
                     running = false;
@@ -168,32 +118,7 @@ fn main() {
         if !running{ break; }
     }
 
-    write!(
-        stdout,
-        "{}{}{}Exiting...",
-        clear::All,
-        Goto(1,1),
-        color::Fg(color::Red)
-    ).unwrap();
-    for _ in 0..4 {
-        write!(
-            stdout,
-            "...",
-        ).unwrap();
-        stdout.flush().unwrap();
-        sleep(Duration::from_millis(200));
-    }
-    write!(
-        stdout,
-        "...{}calculate ya later.{}{}",
-        color::Fg(color::Green),
-        color::Fg(color::Reset),
-        Hide,
-
-    ).unwrap();
-    stdout.flush().unwrap();
-    sleep(Duration::from_secs(1));
-    return;
+    application_close(&stdout, "Exiting", "calculate ya later.");
 }
 
 
@@ -291,4 +216,16 @@ fn eval(expr: &str) -> Result<f64, ()> {
     } else{
         Err(())
     }
+}
+
+fn write_response(stdout: &mut Stdout, curr_line: u16, message: &str){
+    write!(
+        stdout,
+        "{}{}{}{}",
+        Goto(3, curr_line),
+        clear::AfterCursor,
+        color::Fg(color::Reset),
+        message
+    ).unwrap();
+    stdout.flush().unwrap();
 }
