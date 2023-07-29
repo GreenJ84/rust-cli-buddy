@@ -1,3 +1,8 @@
+use std::io::{Write, Stdout};
+use std::thread::sleep;
+use std::time::Duration;
+use termion::{color, cursor, clear, style };
+
 pub fn main(){}
 
 pub fn format_name(program: &str) -> String{
@@ -14,6 +19,51 @@ pub fn format_name(program: &str) -> String{
     }
     title.pop();
     title
+}
+
+pub fn application_entry(mut stdout: &Stdout, message: &str){
+    write!(
+        stdout,
+        "{}{}{}{}{}{}",
+        clear::All,
+        cursor::Hide,
+        cursor::Goto(1, 1),
+        color::Fg(color::Green),
+        message,
+        color::Fg(color::Reset)
+    ).unwrap();
+    stdout.flush().unwrap();
+    sleep(Duration::from_millis(800));
+}
+
+pub fn application_close(mut stdout: &Stdout, start_phrase: &str, end_phrase: &str){
+    write!(
+        stdout,
+        "{}{}{}{}{}..",
+        clear::All,
+        cursor::Hide,
+        cursor::Goto(1, 1),
+        color::Fg(color::Red),
+        start_phrase,
+    ).unwrap();
+    for _ in 0..5{
+        write!(
+            stdout,
+            "...",
+        ).unwrap();
+        stdout.flush().unwrap();
+        sleep(Duration::from_millis(100));
+    }
+    write!(
+        stdout,
+        "{}{}{}{}",
+        color::Fg(color::Green),
+        end_phrase,
+        color::Fg(color::Reset),
+        style::Reset
+    ).unwrap();
+    stdout.flush().unwrap();
+    sleep(Duration::from_millis(1000));
 }
 
 #[cfg(test)]
