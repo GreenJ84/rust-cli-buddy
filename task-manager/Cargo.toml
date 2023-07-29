@@ -1,17 +1,16 @@
 [package]
 name = "task-manager"
 version = "0.1.0"
-edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 buddy-utils = { path = "../buddy-utils" }
-chrono = "0.4"
-regex = "1"
-rusqlite = "0.29"
-termion = "2"
-serde = { version = "1.0", features = ["derive"] }
+chrono = { workspace = true }
+regex = { workspace = true }
+rusqlite = { workspace = true }
+termion = { workspace = true }
+serde = { workspace = true }
 
 [[bin]]
 name = "task-manager"

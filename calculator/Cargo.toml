@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 buddy-utils = { path = "../buddy-utils" }
-termion = "2"
+termion = { workspace = true }
 
 [[bin]]
 name = "calculator"
