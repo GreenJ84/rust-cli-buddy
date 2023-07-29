@@ -1,3 +1,5 @@
+use buddy_utils::{application_close, application_entry};
+
 use std::io::{stdin, Stdin, stdout, Stdout, Write};
 use std::thread::sleep;
 use std::time::Duration;
@@ -7,19 +9,18 @@ use termion::cursor;
 use termion::event::Key;
 use termion::input::TermRead;
 
+const TIMER_OPTIONS: [&str; 4] = [
+    "Stopwatch",
+    "Work Intervals",
+    "Timer",
+    "Alarm"
+];
+
+
 // stopwatch, work interval, timer, alarms
 fn main() {
     let mut stdout: Stdout = stdout();
-    write!(
-        stdout,
-        "{}{}{}Welcome to the Development Timer!{}",
-        clear::All,
-        cursor::Goto(1, 1),
-        color::Fg(color::Green),
-        color::Fg(color::Reset)
-    ).unwrap();
-    stdout.flush().unwrap();
-    sleep(Duration::from_millis(1500));
+    application_entry(&stdout, "Welcome to the Development Timer!");
 
     let mut running: bool = true;
     while running {
@@ -34,14 +35,9 @@ fn main() {
             color::Fg(color::Reset),
             cursor::Hide
         ).unwrap();
-        let options: [&str; 4] = [
-            "Stopwatch",
-            "Work Intervals",
-            "Timer",
-            "Alarm"
-        ];
+
         let mut selected: u32 = 0;
-        for (idx, option) in options.iter().enumerate(){
+        for (idx, option) in TIMER_OPTIONS.iter().enumerate(){
             if idx == selected as usize {
                 write!(
                     stdout,
@@ -89,11 +85,11 @@ fn main() {
                     write!(
                         stdout,
                         "{}{}{}Opening: {}{}{}",
-                        cursor::Goto(1, 1),
                         clear::All,
+                        cursor::Goto(1, 1),
                         color::Fg(color::Green),
                         color::Fg(color::Cyan),
-                        options[selected as usize],
+                        TIMER_OPTIONS[selected as usize],
                         color::Fg(color::Reset),
                     ).unwrap();
                     stdout.flush().unwrap();
@@ -101,46 +97,14 @@ fn main() {
                 },
                 Key::Up => {
                     if selected > 0 {
-                        write!(
-                            stdout,
-                            "{}{}{}    {}",
-                            cursor::Goto(1, selected as u16 + 2),
-                            clear::CurrentLine,
-                            color::Fg(color::Reset),
-                            options[selected as usize],
-                        ).unwrap();
                         selected -= 1;
-                        write!(
-                            stdout,
-                            "{}{}{}  > {}{}",
-                            cursor::Goto(1, selected as u16 + 2),
-                            clear::CurrentLine,
-                            color::Fg(color::Red),
-                            options[selected as usize].to_uppercase(),
-                            color::Fg(color::Reset),
-                        ).unwrap();
+                        display_options(&stdout, selected);
                     }
                 },
                 Key::Down => {
-                    if (selected as usize) < options.len() - 1 {
-                        write!(
-                            stdout,
-                            "{}{}{}    {}",
-                            cursor::Goto(1, selected as u16 + 2),
-                            clear::CurrentLine,
-                            color::Fg(color::Reset),
-                            options[selected as usize],
-                        ).unwrap();
+                    if (selected as usize) < TIMER_OPTIONS.len() - 1 {
                         selected += 1;
-                        write!(
-                            stdout,
-                            "{}{}{}  > {}{}",
-                            cursor::Goto(1, selected as u16 + 2),
-                            clear::CurrentLine,
-                            color::Fg(color::Red),
-                            options[selected as usize].to_uppercase(),
-                            color::Fg(color::Reset)
-                        ).unwrap();
+                        display_options(&stdout, selected);
                     }
                 },
                 _ => {}
@@ -152,32 +116,32 @@ fn main() {
         sleep(Duration::from_millis(800));
     }
 
-    write!(
-        stdout,
-        "{}{}{}{}Closing up Development Timer..",
-        clear::All,
-        cursor::Goto(1, 1),
-        color::Fg(color::Red),
-        cursor::Hide,
-    ).unwrap();
-    for _ in 0..4{
-        write!(
-            stdout,
-            "..."
-        ).unwrap();
-        stdout.flush().unwrap();
-        sleep(Duration::from_millis(200));
-    }
-    write!(
-        stdout,
-        "...{}DEVELOPER OUT!{}",
-        color::Fg(color::Green),
-        color::Fg(color::Reset),
-    ).unwrap();
-    stdout.flush().unwrap();
-    sleep(Duration::from_millis(500));
+    application_close(&stdout, "Closing up Development Timer", "DEVELOPER OUT!");
 }
 
-
-
+fn display_options(mut stdout: &Stdout, selected: u32) {
+    for (idx, option) in TIMER_OPTIONS.iter().enumerate(){
+        if idx == selected as usize {
+            write!(
+                stdout,
+                "{}{}{}  > {}{}",
+                cursor::Goto(1, idx as u16 + 2),
+                clear::CurrentLine,
+                color::Fg(color::Red),
+                option.to_uppercase(),
+                color::Fg(color::Reset),
+            ).unwrap();
+        } else {
+            write!(
+                stdout,
+                "{}{}{}    {}",
+                cursor::Goto(1, idx as u16 + 2),
+                clear::CurrentLine,
+                color::Fg(color::Reset),
+                option,
+            ).unwrap();
+        }
+        stdout.flush().unwrap();
+    }
+}
 
