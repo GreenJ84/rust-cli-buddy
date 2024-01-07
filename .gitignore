@@ -16,3 +16,5 @@ target/
 
 
 **/*.code-workspace
+
+**/*.db3
