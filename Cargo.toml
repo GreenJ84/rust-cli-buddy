@@ -1,19 +1,21 @@
 [workspace]
 members = [
-    "ai-assistant",
-    "buddy-manager",
-    "calculator",
-    "development-timer",
-    "file-organizer",
-    "password-manager",
-    "password-generator",
-    "task-manager",
-    "word-analyzer",
+    "./ai-assistant",
+    "./buddy_manager",
+    "./calculator",
+    "./development-timer",
+    "./file-organizer",
+    "./password-manager",
+    "./password-generator",
+    "./task-manager",
+    "./word-analyzer",
 ]
 
 default-members = [
-    "buddy-manager"
+    "./buddy_manager"
 ]
+
+workspace.resolver = "2"
 
 [workspace.dependencies]
 chrono = "0.4"
@@ -21,11 +23,8 @@ dotenv = "0.15"
 rand = "0.8"
 regex = "1"
 reqwest = { version = "0.11", features = ["blocking", "json"] }
-rusqlite = "0.29"
+rusqlite = "0.30"
 serde = { version = "1.0", features = ["derive"] }
-termion = "2"
+termion = "3"
 time = "0.3"
 tokio = { version = "1.29", features = ["full"] }
-
-[alias]
-run = "run --bin buddy-manager"

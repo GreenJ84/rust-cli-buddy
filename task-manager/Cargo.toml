@@ -5,7 +5,7 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-buddy-utils = { path = "../buddy-utils" }
+buddy_service = { path = "../buddy_service" }
 chrono = { workspace = true }
 regex = { workspace = true }
 rusqlite = { workspace = true }
