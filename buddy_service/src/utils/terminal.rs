@@ -28,11 +28,11 @@ pub fn info_text(message: &str) -> String {
 }
 
 pub fn warning_text(message: &str) -> String {
-    return terminal_mesage(message, color::Magenta);
+    return terminal_mesage(message, color::Red);
 }
 
 pub fn error_text(message: &str) -> String {
-    return terminal_mesage(message, color::Red);
+    return terminal_mesage(message, color::Magenta);
 }
 
 pub fn clear_terminal(mut stdout: &Stdout){
@@ -41,6 +41,15 @@ pub fn clear_terminal(mut stdout: &Stdout){
         "{}{}", 
         clear::All, 
         cursor::Goto(1, 1)
+    ).unwrap();
+    stdout.flush().unwrap();
+}
+
+pub fn clear_line(mut stdout: &Stdout){
+    write!(
+        stdout,
+        "\r{}",
+        clear::CurrentLine,
     ).unwrap();
     stdout.flush().unwrap();
 }

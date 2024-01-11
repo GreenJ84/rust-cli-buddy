@@ -1,7 +1,7 @@
-use std::io::{Write, Stdout};
+use std::io::{Write, Stdout, stdin};
 use std::thread::sleep;
 use std::time::Duration;
-use termion::{style, cursor::Goto, color};
+use termion::{style, cursor::Goto, clear, color, event::Key, input::TermRead};
 
 use crate::utils::{self, terminal};
 
@@ -91,6 +91,73 @@ pub fn program_selection(mut stdout: &Stdout, selected: usize, options: &[&str],
     sleep(Duration::from_millis(400));
 }
 
+pub fn error_confirmation(mut stdout: &Stdout, message: &str) {
+    // terminal::clear_terminal(stdout);
+    terminal::cursor_display(stdout, false);
+    write!(
+        stdout,
+        "{}\n\r {}",
+        terminal::error_text( message),
+        terminal::warning_text("* Hit any key to continue *")
+    ).unwrap();
+    stdout.flush().unwrap();
+    
+    for key in stdin().keys(){
+        match key.unwrap_or_else(|_|{
+            Key::Char('\n')
+        }){
+            _ => {
+                break;
+            }
+        };
+    }
+}
+
+pub fn message_confirmation(mut stdout: &Stdout, message: &str) -> bool{
+    terminal::clear_terminal(stdout);
+    terminal::cursor_display(stdout, false);
+    write!(
+        stdout,
+        "{}\n\r {}",
+        terminal::buddy_text( message),
+        terminal::warning_text("* Hit 'y'/'n' to respond *")
+    ).unwrap();
+    stdout.flush().unwrap();
+    
+    let mut response = false;
+    for key in stdin().keys(){
+        match key.unwrap(){
+            Key::Esc | Key::Char('n') => {
+                break;
+            },
+            Key::Char('y') | Key::Char('\n') => {
+                response = true;
+                write!(
+                    stdout, 
+                    "{}", 
+                    "\n\n\r"
+                ).unwrap();
+                stdout.flush().unwrap();
+                break;
+            },
+            _ => {
+                write!(
+                    stdout,
+                    "{}",
+                    terminal::warning_text("Input not understood. Try again")
+                ).unwrap();
+                stdout.flush().unwrap();
+                sleep(Duration::from_millis(800));
+
+                terminal::clear_terminal(stdout);
+            }
+        };
+    }
+
+    return response;
+}
+
+
 pub fn exit(mut stdout: &Stdout, start_phrase: &str, end_phrase: &str){
     terminal::clear_terminal(stdout);
     terminal::cursor_display(stdout, false);
@@ -111,9 +178,10 @@ pub fn exit(mut stdout: &Stdout, start_phrase: &str, end_phrase: &str){
     }
     write!(
         stdout,
-        "{}{}",
+        "{}{}{}",
         terminal::buddy_text(end_phrase),
-        style::Reset
+        style::Reset,
+        color::Fg(color::Reset),
     ).unwrap();
     stdout.flush().unwrap();
     sleep(Duration::from_millis(600));
