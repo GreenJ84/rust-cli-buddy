@@ -1,14 +1,14 @@
 [workspace]
 members = [
-    "./ai-assistant",
+    "./ai_assistant",
     "./buddy_manager",
     "./calculator",
-    "./development-timer",
-    "./file-organizer",
-    "./password-manager",
-    "./password-generator",
-    "./task-manager",
-    "./word-analyzer",
+    "./development_timer",
+    "./file_organizer",
+    "./password_manager",
+    "./password_generator",
+    "./task_manager",
+    "./word_analyzer",
 ]
 
 default-members = [
