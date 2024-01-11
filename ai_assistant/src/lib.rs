@@ -1,6 +1,12 @@
 pub mod gpt_structs;
 
-async fn interact_with_open_ai(message: &str) -> Result<String, String> {
+use reqwest::Client;
+use reqwest::header::{ACCEPT, CONTENT_TYPE, AUTHORIZATION};
+
+use crate::gpt_structs::{CompletionRequest, CompletionResponse, Message};
+
+
+pub async fn interact_with_open_ai(message: &str) -> Result<String, String> {
     let client = Client::new();
     let bearer = format!("Bearer {}", std::env::var("CHAT_API_KEY").unwrap());
 
@@ -28,7 +34,8 @@ async fn interact_with_open_ai(message: &str) -> Result<String, String> {
         .header(AUTHORIZATION, &bearer)
         .json(&request)
         .send()
-        .await?;
+        .await
+        .unwrap();
 
     match response.status() {
         reqwest::StatusCode::OK => {
@@ -41,16 +48,16 @@ async fn interact_with_open_ai(message: &str) -> Result<String, String> {
             };
         }
         reqwest::StatusCode::UNAUTHORIZED => {
-            return Err(String::from("🛑 Status: UNAUTHORIZED - Need to grab a new token"));
+            return Err(String::from("🛑 Status: UNAUTHORIZED\n\rNeed to grab a new token"));
         }
         reqwest::StatusCode::TOO_MANY_REQUESTS => {
-            return Err(String::from("🛑 Status: 429 - Too many requests"));
+            return Err(String::from("🛑 Status: 429 - TOO_MANY_REQUESTS\n\rNeed to Increase request limit"));
         }
         other => {
-            panic!(
-                "🛑 Uh oh! Something unexpected happened: [{:#?}]", 
-                other
-            );
+            return Err(String::from(
+                format!("🛑 Uh oh! Something unexpected happened: [{:#?}]",
+                other)
+            ));
         }
     };
 }

@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 buddy_service = { path = "../buddy_service" }
-dotenv = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 termion = { workspace = true }
