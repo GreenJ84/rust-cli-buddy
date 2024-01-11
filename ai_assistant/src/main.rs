@@ -1,6 +1,6 @@
-mod ai_structs;
-use ai_structs::{CompletionRequest, CompletionResponse, Message};
-use buddy_utils::{application_entry, application_close};
+use ai_assistant::gpt_structs::{CompletionRequest, CompletionResponse, Message};
+use ai_assistant::{interact_with_open_ai};
+use buddy_service::utils::{application, terminal};
 
 use dotenv::dotenv;
 use std::io::{Write, stdin, stdout};
@@ -8,9 +8,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use reqwest::Client;
 use reqwest::header::{ACCEPT, CONTENT_TYPE, AUTHORIZATION};
-use termion::{color, cursor, clear, style};
-use termion::event::Key;
-use termion::input::TermRead;
+use termion::{color, cursor, clear, style, event::Key, input::TermRead};
 
 
 // Development companion, AI assistant
@@ -18,23 +16,17 @@ use termion::input::TermRead;
 async fn main() {
     dotenv().ok();
     let mut stdout = stdout();
-    application_entry(&stdout, "Welcome to your AI Assistant!");
-    write!(
-        stdout,
-        "{}{}",
-        clear::All,
-        cursor::Goto(1, 1),
-    ).unwrap();
-    stdout.flush().unwrap();
+    application::enter(&stdout, "Welcome to your AI Assistant!");
+    sleep(Duration::from_millis(400));
+    terminal::clear_terminal(&stdout);
 
     let mut running = true;
     while running {
         write!(
             stdout,
-            "{}How can I be of service?\n\r{} > {}{}{}",
-            color::Fg(color::Cyan),
-            color::Fg(color::Red),
-            color::Fg(color::Reset),
+            "{}\n\r{} > {}{}",
+            terminal::buddy_text_text("How can I be of service?"),
+            terminal::error_text_text(" > "),
             cursor::Show,
             cursor::BlinkingUnderline,
         ).unwrap();
@@ -61,7 +53,7 @@ async fn main() {
                     stdout.flush().unwrap();
 
                     let mut offset: String = String::new();
-                    match interact_with_chat_ai(&input).await{
+                    match ai_assistant::interact_with_open_ai(&input).await{
                         Ok(response) => {
                             write!(stdout, "{}", color::Fg(color::Green)).unwrap();
 
@@ -171,62 +163,6 @@ async fn main() {
         }
     }
 
-    application_close(&stdout, "Closing AI Assistant", "Good Bye");
+    application::exit(&stdout, "Closing AI Assistant", "Good Bye");
 }
 
-
-async fn interact_with_chat_ai(message: &str) -> Result<String, String> {
-    let client = Client::new();
-    let bearer = format!("Bearer {}", std::env::var("CHAT_API_KEY").unwrap());
-
-    let request = CompletionRequest {
-        model: "gpt-3.5-turbo".to_owned(),
-        messages: vec![
-            Message {
-                role: "system".to_owned(),
-                content: "You are a helpful assistant.".to_owned()
-            },
-            Message {
-                role: "user".to_owned(),
-                content: message.to_owned()
-            }
-        ],
-        temperature: 0.7,
-        n: 1,
-    };
-
-    let response = client
-    .post("https://api.openai.com/v1/chat/completions".to_string())
-    .header(ACCEPT, "*/*")
-    .header("OpenAI-Organization","org-ZFfZMGuCBWpCVT9jmtDaRE5p")
-    .header(CONTENT_TYPE, "application/json")
-    .header(AUTHORIZATION, &bearer)
-    .json(&request)
-    .send()
-    .await
-    .unwrap();
-
-    match response.status() {
-        reqwest::StatusCode::OK => {
-            match response.json::<CompletionResponse>().await {
-                Ok(parsed) => {
-                    return Ok(parsed.choices[0].message.content.clone());
-                },
-                Err(_) => 
-                    return Err(String::from("🛑 Hm, the response didn't match the shape we expected.")),
-            };
-        }
-        reqwest::StatusCode::UNAUTHORIZED => {
-            return Err(String::from("🛑 Status: UNAUTHORIZED - Need to grab a new token"));
-        }
-        reqwest::StatusCode::TOO_MANY_REQUESTS => {
-            return Err(String::from("🛑 Status: 429 - Too many requests"));
-        }
-        other => {
-            panic!(
-                "🛑 Uh oh! Something unexpected happened: [{:#?}]", 
-                other
-            );
-        }
-    };
-}
