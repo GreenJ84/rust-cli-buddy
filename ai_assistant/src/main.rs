@@ -1,7 +1,7 @@
 use std::io::{stdin, stdout, Write};
 use std::thread::sleep;
 use std::time::Duration;
-use termion::{clear, color, cursor, event::Key, input::TermRead, style};
+use termion::{ color, cursor, event::Key, input::TermRead, style};
 
 use ai_assistant as AI;
 use buddy_service::utils::{application, terminal};
