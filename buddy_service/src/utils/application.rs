@@ -107,6 +107,7 @@ pub fn error_confirmation(mut stdout: &Stdout, message: &str) {
             Key::Char('\n')
         }){
             _ => {
+                terminal::clear_line(stdout);
                 break;
             }
         };
