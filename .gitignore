@@ -17,4 +17,4 @@ target/
 
 **/*.code-workspace
 
-**/*.db3
+**/buddy_db.db3

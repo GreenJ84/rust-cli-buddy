@@ -2,13 +2,13 @@
 members = [
     "./ai_assistant",
     "./buddy_manager",
-    "./calculator",
-    "./development_timer",
-    "./file_organizer",
-    "./password_manager",
-    "./password_generator",
-    "./task_manager",
-    "./word_analyzer",
+    # "./calculator",
+    # "./development_timer",
+    # "./file_organizer",
+    # "./password_manager",
+    # "./password_generator",
+    # "./task_manager",
+    # "./word_analyzer",
 ]
 
 default-members = [
